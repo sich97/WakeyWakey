@@ -11,35 +11,43 @@ DATABASE_PATH = "server/db"
 
 
 def main():
-    will_reset = False
+    reset = False
     if os.path.isfile(DATABASE_PATH):
         print("Database already exists. Do you want it reset? [NO]: ", end="")
-        will_reset = input()
-        if will_reset == "YES" or will_reset == "Yes" or will_reset == "yes":
-            will_reset = True
+        reset = input()
+        if reset == "YES" or reset == "Yes" or reset == "yes":
+            reset = True
             os.remove(DATABASE_PATH)
         else:
-            will_reset = False
+            reset = False
 
-    if will_reset:
+    if reset:
         db = sqlite3.connect(DATABASE_PATH)
         cursor = db.cursor()
 
-        # Create tables
-        cursor.execute('''
-        CREATE TABLE server_settings(id INTEGER PRIMARY KEY, address TEXT, port INTEGER)
-        ''')
-        cursor.execute('''
-        CREATE TABLE user_preferences(id INTEGER PRIMARY KEY, wakeup_time_hour INTEGER, wakeup_time_minute INTEGER,
-        utc_offset INTEGER)
-        ''')
+        # Create the server settings table
+        sql_query = """CREATE TABLE server_settings(id INTEGER PRIMARY KEY, address TEXT, port INTEGER,
+        alarm_state INTEGER)"""
+        cursor.execute(sql_query)
+        # Fill the table with data
+        sql_query = """INSERT INTO server_settings(address, port, alarm_state) VALUES(?, ?, ?)"""
+        data = "", 49500, 0
+        cursor.execute(sql_query, data)
 
-        # Fill tables with initial data
-        cursor.execute('''
-        INSERT INTO server_settings(address, port) VALUES(?, ?)
-        ''', ("", 49500))
+        # Create the user preferences table
+        sql_query = """CREATE TABLE user_preferences(id INTEGER PRIMARY KEY, wakeup_time_hour INTEGER,
+        wakeup_time_minute INTEGER, utc_offset INTEGER)"""
+        cursor.execute(sql_query)
+        # Fill the table with data
+        sql_query = """INSERT INTO user_preferences(wakeup_time_hour, wakeup_time_minute, utc_offset) VALUES(?, ?, ?)"""
+        data = 16, 00, 2
+        cursor.execute(sql_query, data)
 
+        # Save changes to database
         db.commit()
+
+        # Close database
+        db.close()
 
 
 if __name__ == '__main__':
