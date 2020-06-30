@@ -27,43 +27,48 @@ def main():
         # User answered yes
         if reset == "YES" or reset == "Yes" or reset == "yes":
             # Delete the database
-            reset = True
             os.remove(DATABASE_PATH)
 
-        # User answered something else than yes
-        else:
-            # Do not delete the database
-            reset = False
+            # Create a new one
+            create_database()
 
-    # If database has been deleted
-    if reset:
-        # Create a new database
-        db = sqlite3.connect(DATABASE_PATH)
-        cursor = db.cursor()
+    # A database does not exist
+    else:
+        create_database()
 
-        # Create the server settings table
-        sql_query = """CREATE TABLE server_settings(id INTEGER PRIMARY KEY, address TEXT, port INTEGER,
-        alarm_state INTEGER)"""
-        cursor.execute(sql_query)
-        # Fill the table with data
-        sql_query = """INSERT INTO server_settings(address, port, alarm_state) VALUES(?, ?, ?)"""
-        data = "", 49500, 0
-        cursor.execute(sql_query, data)
 
-        # Create the user preferences table
-        sql_query = """CREATE TABLE user_preferences(id INTEGER PRIMARY KEY, wakeup_time_hour INTEGER,
-        wakeup_time_minute INTEGER, utc_offset INTEGER)"""
-        cursor.execute(sql_query)
-        # Fill the table with data
-        sql_query = """INSERT INTO user_preferences(wakeup_time_hour, wakeup_time_minute, utc_offset) VALUES(?, ?, ?)"""
-        data = 16, 00, 2
-        cursor.execute(sql_query, data)
+def create_database():
+    """
+    Creates a database and fills it with initial information.
+    :return: None
+    """
+    # Establish database connection
+    db = sqlite3.connect(DATABASE_PATH)
+    cursor = db.cursor()
 
-        # Save changes to database
-        db.commit()
+    # Create the server settings table
+    sql_query = """CREATE TABLE server_settings(id INTEGER PRIMARY KEY, address TEXT, port INTEGER,
+    alarm_state INTEGER)"""
+    cursor.execute(sql_query)
+    # Fill the table with data
+    sql_query = """INSERT INTO server_settings(address, port, alarm_state) VALUES(?, ?, ?)"""
+    data = "", 49500, 0
+    cursor.execute(sql_query, data)
 
-        # Close database
-        db.close()
+    # Create the user preferences table
+    sql_query = """CREATE TABLE user_preferences(id INTEGER PRIMARY KEY, wakeup_time_hour INTEGER,
+    wakeup_time_minute INTEGER, utc_offset INTEGER)"""
+    cursor.execute(sql_query)
+    # Fill the table with data
+    sql_query = """INSERT INTO user_preferences(wakeup_time_hour, wakeup_time_minute, utc_offset) VALUES(?, ?, ?)"""
+    data = 16, 00, 2
+    cursor.execute(sql_query, data)
+
+    # Save changes to database
+    db.commit()
+
+    # Close database
+    db.close()
 
 
 if __name__ == '__main__':
