@@ -1,43 +1,55 @@
 """
 File: client.py
 
-This program let you manage the server settings (including wakeup time) as well as shut the alarm off once it's started.
+This program lets you change settings as well as shut the alarm off once it's started.
 """
 
 import configparser
 import socket
+import random
+
+SETTINGS_PATH = "client/settings.ini"
 
 
 def main():
+    """
+    After initialization, the program branches into two cases; One in which the alarm is on and you'll be able to
+    turn it off by succeeding the awake test. And another in which the alarm is off and you'll be able to change
+    settings, such as wakeup time, UTC offset, and more.
+    :return: None
+    """
+    # Initialization
     server_address, server_port, alarm_state = initialize()
 
-    # If the server is in alarm mode
+    # If the alarm is on
     if alarm_state == 1:
 
-        # While having not completed the awoke_test properly
-        awoke = False
-        while not awoke:
-
-            # Test whether the user is awoke or not
-            awoke = awoke_test()
+        # Test if the user is awake
+        awake_test()
 
         # After having completed the awoke_test properly, stop the alarm
         set_alarm_state(server_address, server_port, 0)
 
     # If the server is not in alarm mode
     elif alarm_state == 0:
-        set_alarm_state(server_address, server_port, 1)
+
+        # Go into management mode
         management()
+
+
+"""
+########################################################################################################################
+                                                        INITIALIZATION
+########################################################################################################################
+"""
 
 
 def initialize():
     """
-    Instantiates objects, variables, etc.
-    Also connects to the server.
-    :return: alarm_state (bool)
+    Loads settings from settings.ini and gets the current state of the alarm.
+    :return: server_address (str), server_port(int), alarm_state (int)
     """
-
-    # Load settings
+    # Load settings from settings.ini
     server_address, server_port = load_settings()
 
     # Get server state
@@ -48,28 +60,25 @@ def initialize():
 
 def load_settings():
     """
-    Loads settings.ini and returns its information
-    :return:
+    Loads settings.ini and returns its information.
+    :return: server_address (str), server_port (str)
     """
     # Load settings.ini
     config = configparser.ConfigParser()
-    config.read('client/settings.ini')
+    config.read(SETTINGS_PATH)
     config.sections()
-
-    # Extract information
     server_address = config['SERVER']['Address']
     server_port = config['SERVER']['Port']
 
-    # Return information
     return server_address, server_port
 
 
 def get_alarm_state(server_address, server_port):
     """
-    Returns a 1 if the server is in alarm mode, returns 0 otherwise
-    :param server_address: The IP address of the server
+    Returns the value of alarm_state, which is stored in the database on the server.
+    :param server_address: The IP address of the server.
     :type server_address: str
-    :param server_port: The port number of the server
+    :param server_port: The port number of the server.
     :type server_port: str
     :return: server_state (int)
     """
@@ -88,16 +97,58 @@ def get_alarm_state(server_address, server_port):
     msg_decoded = msg.decode("utf-8")
     alarm_state = int(msg_decoded)
 
-    # Verbose
-    print("Alarm state is: " + str(alarm_state))
-
     # Close connection
     s.close()
 
     return alarm_state
 
 
+"""
+########################################################################################################################
+                                                        AWAKE TEST
+########################################################################################################################
+"""
+
+
+def awake_test():
+    """
+    Gives the user challenges until one is overcome, in which case we assume the user is awake enough to not fall back
+    to sleep.
+    :return: None
+    """
+    awake = False
+    while not awake:
+
+        # Temporary challenge for development purposes
+        first_int = random.randint(1, 10)
+        second_int = random.randint(1, 10)
+        print("What is " + str(first_int) + " + " + str(second_int) + "?")
+        answer = int(input("Type your answer here: "))
+        if answer == first_int + second_int:
+            awake = True
+            print("Congratulations, you're awake!")
+        else:
+            print("You're not yet awake enough. Try again.")
+
+
+"""
+########################################################################################################################
+                                                        MANAGEMENT
+########################################################################################################################
+"""
+
+
 def set_alarm_state(server_address, server_port, new_alarm_state):
+    """
+    Sets the value of alarm_state, which is stored in the database on the server.
+    :param server_address: The IP address of the server.
+    :type server_address: str
+    :param server_port: The port number of the server.
+    :type server_port: str
+    :param new_alarm_state: The requested new value of alarm_state.
+    :type new_alarm_state: int
+    :return: None
+    """
     # Create an INET streaming socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -112,13 +163,14 @@ def set_alarm_state(server_address, server_port, new_alarm_state):
     s.close()
 
 
-def awoke_test():
-    print("Awoke test not yet defined")
-    pass
-
-
 def management():
-    print("Management not yet defined")
+    """
+    Let's the user change settings on the server such as wakeup time, UTC offset, and more.
+    :return: None
+    """
+
+    # Not yet defined
+    print("Management not yet defined.")
     pass
 
 

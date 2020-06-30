@@ -1,7 +1,7 @@
 """
 File: server_setup.py
 
-This file creates / or resets the server database
+This file creates / or resets the server database.
 """
 
 import sqlite3
@@ -11,17 +11,33 @@ DATABASE_PATH = "server/db"
 
 
 def main():
+    """
+    In the case that a database already exists, ask the user if it's really okay to reset it. If no, then do nothing
+    and exit. If yes, delete the existing database and create a new one.
+    :return: None
+    """
     reset = False
+
+    # A database already exists
     if os.path.isfile(DATABASE_PATH):
+        # Ask the user what to do
         print("Database already exists. Do you want it reset? [NO]: ", end="")
         reset = input()
+
+        # User answered yes
         if reset == "YES" or reset == "Yes" or reset == "yes":
+            # Delete the database
             reset = True
             os.remove(DATABASE_PATH)
+
+        # User answered something else than yes
         else:
+            # Do not delete the database
             reset = False
 
+    # If database has been deleted
     if reset:
+        # Create a new database
         db = sqlite3.connect(DATABASE_PATH)
         cursor = db.cursor()
 
