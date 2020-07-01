@@ -34,15 +34,17 @@ def main():
         # Loop delay
         time.sleep(MAIN_LOOP_DELAY_SECONDS)
 
-        # Check if within wakeup window
-        time_left = minutes_until_wakeup_time()
-        print("Minutes until wakeup: " + str(time_left))
+        # If active
+        if get_active_state():
+            # Check if within wakeup window
+            time_left = minutes_until_wakeup_time()
+            print("Minutes until wakeup: " + str(time_left))
 
-        # If within wakeup window
-        if time_left <= WAKEUP_WINDOW_MINUTES:
-            print("Entered wakeup window.")
-            # Go into alarm mode
-            alarm_mode(time_left)
+            # If within wakeup window
+            if time_left <= WAKEUP_WINDOW_MINUTES:
+                print("Entered wakeup window.")
+                # Go into alarm mode
+                alarm_mode(time_left)
 
 
 """
@@ -193,6 +195,48 @@ def set_alarm_state(new_alarm_state):
     db.close()
 
 
+def get_active_state():
+    """
+    Returns the active state, which is stored in the database.
+    :return: active_state (int)
+    """
+    # Instantiate database connection
+    db = sqlite3.connect(DATABASE_PATH)
+    cursor = db.cursor()
+
+    # Get active state
+    sql_query = """SELECT active_state FROM user_preferences"""
+    cursor.execute(sql_query)
+    row0 = cursor.fetchone()
+    active_state = row0[0]
+
+    # Close database connection
+    db.close()
+
+    return active_state
+
+
+def set_active_state(new_active_state):
+    """
+    Sets the active state, which is stored in the database, to the parameter new_active_state.
+    :param new_active_state: The new alarm state.
+    :type new_active_state: int
+    :return: None
+    """
+    # Instantiate database connection
+    db = sqlite3.connect(DATABASE_PATH)
+    cursor = db.cursor()
+
+    # Set active state
+    sql_query = """Update user_preferences set active_state = ? where id = ?"""
+    data = new_active_state, 1
+    cursor.execute(sql_query, data)
+    db.commit()
+
+    # Close database connection
+    db.close()
+
+
 """
 ########################################################################################################################
                                                         TIME MANAGEMENT
@@ -315,6 +359,9 @@ def alarm_mode(countdown):
 
     # Make sure the buzzer turns off
     buzzer(0)
+
+    # Deactivate active_state
+    set_active_state(0)
 
 
 def buzzer(state):
