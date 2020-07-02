@@ -123,112 +123,81 @@ def communication(s):
     # Listen for connections
     s.listen(5)
     while True:
+        # Accept any connection
         client_socket, client_address = s.accept()
         print(f"Connection from {client_address} has been established!")
+
+        # Receive message and decode it
         msg = client_socket.recv(1024)
-        msg_decoded = msg.decode("utf-8")
+        command = msg.decode("utf-8").split(" ")
 
         # Alarm state requested
-        if msg_decoded == "get_alarm_state":
+        if command[0] == "get_alarm_state":
             # Verbose
             print(f"{client_address} requested the alarm state.")
+
+            # Get the alarm state
             alarm_state = get_alarm_state()
+
+            # Reply with the alarm state
             client_socket.send(bytes(str(alarm_state), "utf-8"))
-            client_socket.close()
 
         # Change alarm state requested
-        elif "set_alarm_state" in msg_decoded:
-            # No more need for the socket
-            client_socket.close()
-
-            # Get new requested alarm state
-            parsed_string = msg_decoded.split(" ")
-            new_alarm_state = int(parsed_string[1])
-
+        elif command[0] == "set_alarm_state":
             # Verbose
-            print(f"{client_address} requests alarm state to be {new_alarm_state}.")
+            print(f"{client_address} requests alarm state to be {command[1]}.")
 
             # Set new alarm state
-            set_alarm_state(new_alarm_state)
+            set_alarm_state(int(command[1]))
 
         # Set active state
-        elif "set_active_state" in msg_decoded:
-            # No more need for the socket
-            client_socket.close()
-
-            # Get new requested active state
-            parsed_string = msg_decoded.split(" ")
-            new_active_state = int(parsed_string[1])
-
+        elif command[0] == "set_active_state":
             # Verbose
-            print(f"{client_address} requests active state to be {new_active_state}.")
+            print(f"{client_address} requests active state to be {command[1]}.")
 
             # Set new active_state
-            set_active_state(new_active_state)
+            set_active_state(int(command[1]))
 
-        elif "set_wakeup_hour" in msg_decoded:
-            # No more need for the socket
-            client_socket.close()
-
-            # Get new requested wakeup hour
-            parsed_string = msg_decoded.split(" ")
-            new_wakeup_hour = int(parsed_string[1])
-
+        elif command[0] == "set_wakeup_hour":
             # Verbose
-            print(f"{client_address} requests wakeup hour to be {new_wakeup_hour}.")
+            print(f"{client_address} requests wakeup hour to be {command[1]}.")
 
             # Set new wakeup hour
-            set_wakeup_hour(new_wakeup_hour)
+            set_wakeup_hour(int(command[1]))
 
-        elif "set_wakeup_minute" in msg_decoded:
-            # No more need for the socket
-            client_socket.close()
-
-            # Get new requested wakeup hour
-            parsed_string = msg_decoded.split(" ")
-            new_wakeup_minute = int(parsed_string[1])
-
+        elif command[0] == "set_wakeup_minute":
             # Verbose
-            print(f"{client_address} requests wakeup minute to be {new_wakeup_minute}.")
+            print(f"{client_address} requests wakeup minute to be {command[1]}.")
 
             # Set new wakeup hour
-            set_wakeup_minute(new_wakeup_minute)
+            set_wakeup_minute(int(command[1]))
 
-        elif "set_wakeup_window" in msg_decoded:
-            # No more need for the socket
-            client_socket.close()
-
-            # Get new requested wakeup window
-            parsed_string = msg_decoded.split(" ")
-            new_wakeup_window = int(parsed_string[1])
-
+        elif command[0] == "set_wakeup_window":
             # Verbose
-            print(f"{client_address} requests wakeup window to be {new_wakeup_window}.")
+            print(f"{client_address} requests wakeup window to be {command[1]}.")
 
             # Set new wakeup window
-            set_wakeup_window(new_wakeup_window)
+            set_wakeup_window(int(command[1]))
 
-        elif "set_utc_offset" in msg_decoded:
-            # No more need for the socket
-            client_socket.close()
-
-            # Get new requested UTC offset
-            parsed_string = msg_decoded.split(" ")
-            new_utc_offset = int(parsed_string[1])
-
+        elif command[0] == "set_utc_offset":
             # Verbose
-            print(f"{client_address} requests UTC offset to be {new_utc_offset}.")
+            print(f"{client_address} requests UTC offset to be {command[1]}.")
 
             # Set new wakeup window
-            set_utc_offset(new_utc_offset)
+            set_utc_offset(int(command[1]))
 
-        elif msg_decoded == "get_user_preferences":
+        elif command[0] == "get_user_preferences":
             # Verbose
             print(f"{client_address} requested user_preferences.")
 
+            # Get the user preferences
             user_preferences = get_user_preferences()
+
+            # Reply with the user preferences
             client_socket.send(bytes(str(user_preferences), "utf-8"))
-            client_socket.close()
+
+        # Close the socket
+        client_socket.close()
 
 
 def get_alarm_state():
