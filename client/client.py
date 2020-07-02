@@ -225,6 +225,62 @@ def management(server_address, server_port):
             change_wakeup_time(server_address, server_port, "hour", new_wakeup_hour)
             change_wakeup_time(server_address, server_port, "minute", new_wakeup_minute)
 
+        if preference_to_change == 3:
+            print("Changing wakeup window.")
+            new_wakeup_window = int(input("Please input new wakeup window (in minutes): "))
+
+            change_wakeup_window(server_address, server_port, new_wakeup_window)
+
+        if preference_to_change == 4:
+            print("Changing UTC offset.")
+            new_utc_offset = int(input("Please input new UTC offset: "))
+
+            change_utc_offset(server_address, server_port, new_utc_offset)
+
+
+def change_wakeup_window(server_address, server_port, new_wakeup_window):
+    """
+    Sends a command to the server requesting the wakeup window to be changed to the new_wakeup_window parameter.
+    :param server_address: The IP address of the server.
+    :type server_address: str
+    :param server_port: The port number of the server.
+    :type server_port: str
+    :param new_wakeup_window: The new wakeup window in minutes.
+    :type new_wakeup_window: int
+    :return: None
+    """
+    # Connect to server
+    connection = server_connection(server_address, server_port)
+
+    # Request changing alarm state
+    command = "set_wakeup_window " + str(new_wakeup_window)
+    connection.send(bytes(command, "utf-8"))
+
+    # Close connection
+    connection.close()
+
+
+def change_utc_offset(server_address, server_port, new_utc_offset):
+    """
+    Sends a command to the server requesting the UTC offset to be changed to the new_utc_offset parameter.
+    :param server_address: The IP address of the server.
+    :type server_address: str
+    :param server_port: The port number of the server.
+    :type server_port: str
+    :param new_utc_offset: The new UTC offset in minutes.
+    :type new_utc_offset: int
+    :return: None
+    """
+    # Connect to server
+    connection = server_connection(server_address, server_port)
+
+    # Request changing alarm state
+    command = "set_utc_offset " + str(new_utc_offset)
+    connection.send(bytes(command, "utf-8"))
+
+    # Close connection
+    connection.close()
+
 
 def change_wakeup_time(server_address, server_port, hour_or_minute, value):
     """
@@ -269,7 +325,7 @@ def change_active_state(server_address, server_port, current_active_state):
 
 def set_active_state(server_address, server_port, new_active_state):
     """
-    Sends a command to the server requesting the active state to be change to the new_active_state parameter.
+    Sends a command to the server requesting the active state to be changed to the new_active_state parameter.
     :param server_address: The IP address of the server.
     :type server_address: str
     :param server_port: The port number of the server.

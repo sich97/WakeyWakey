@@ -194,6 +194,34 @@ def communication(s):
             # Set new wakeup hour
             set_wakeup_minute(new_wakeup_minute)
 
+        elif "set_wakeup_window" in msg_decoded:
+            # No more need for the socket
+            client_socket.close()
+
+            # Get new requested wakeup window
+            parsed_string = msg_decoded.split(" ")
+            new_wakeup_window = int(parsed_string[1])
+
+            # Verbose
+            print(f"{client_address} requests wakeup window to be {new_wakeup_window}.")
+
+            # Set new wakeup window
+            set_wakeup_window(new_wakeup_window)
+
+        elif "set_utc_offset" in msg_decoded:
+            # No more need for the socket
+            client_socket.close()
+
+            # Get new requested UTC offset
+            parsed_string = msg_decoded.split(" ")
+            new_utc_offset = int(parsed_string[1])
+
+            # Verbose
+            print(f"{client_address} requests UTC offset to be {new_utc_offset}.")
+
+            # Set new wakeup window
+            set_utc_offset(new_utc_offset)
+
         elif msg_decoded == "get_user_preferences":
             # Verbose
             print(f"{client_address} requested user_preferences.")
@@ -364,6 +392,27 @@ def set_wakeup_window(new_wakeup_window):
     # Set active state
     sql_query = """Update user_preferences set wakeup_window = ? where id = ?"""
     data = new_wakeup_window, 1
+    cursor.execute(sql_query, data)
+    db.commit()
+
+    # Close database connection
+    db.close()
+
+
+def set_utc_offset(new_utc_offset):
+    """
+    Sets the UTC offset to the parameter new_utc_offset.
+    :param new_utc_offset: The new UTC offset.
+    :type new_utc_offset: int
+    :return: None
+    """
+    # Instantiate database connection
+    db = sqlite3.connect(DATABASE_PATH)
+    cursor = db.cursor()
+
+    # Set utc offset
+    sql_query = """Update user_preferences set utc_offset = ? where id = ?"""
+    data = new_utc_offset, 1
     cursor.execute(sql_query, data)
     db.commit()
 
