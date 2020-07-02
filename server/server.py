@@ -152,6 +152,57 @@ def communication(s):
             # Set new alarm state
             set_alarm_state(new_alarm_state)
 
+        # Set active state
+        elif "set_active_state" in msg_decoded:
+            # No more need for the socket
+            client_socket.close()
+
+            # Get new requested active state
+            parsed_string = msg_decoded.split(" ")
+            new_active_state = int(parsed_string[1])
+
+            # Verbose
+            print(f"{client_address} requests active state to be {new_active_state}.")
+
+            # Set new active_state
+            set_active_state(new_active_state)
+
+        elif "set_wakeup_hour" in msg_decoded:
+            # No more need for the socket
+            client_socket.close()
+
+            # Get new requested wakeup hour
+            parsed_string = msg_decoded.split(" ")
+            new_wakeup_hour = int(parsed_string[1])
+
+            # Verbose
+            print(f"{client_address} requests wakeup hour to be {new_wakeup_hour}.")
+
+            # Set new wakeup hour
+            set_wakeup_hour(new_wakeup_hour)
+
+        elif "set_wakeup_minute" in msg_decoded:
+            # No more need for the socket
+            client_socket.close()
+
+            # Get new requested wakeup hour
+            parsed_string = msg_decoded.split(" ")
+            new_wakeup_minute = int(parsed_string[1])
+
+            # Verbose
+            print(f"{client_address} requests wakeup minute to be {new_wakeup_minute}.")
+
+            # Set new wakeup hour
+            set_wakeup_minute(new_wakeup_minute)
+
+        elif msg_decoded == "get_user_preferences":
+            # Verbose
+            print(f"{client_address} requested user_preferences.")
+
+            user_preferences = get_user_preferences()
+            client_socket.send(bytes(str(user_preferences), "utf-8"))
+            client_socket.close()
+
 
 def get_alarm_state():
     """
@@ -235,6 +286,89 @@ def set_active_state(new_active_state):
 
     # Close database connection
     db.close()
+
+
+def set_wakeup_hour(new_wakeup_hour):
+    """
+    Sets the wakeup hour to the parameter new_wakeup_hour.
+    :param new_wakeup_hour: The new wakeup hour.
+    :type new_wakeup_hour: int
+    :return: None
+    """
+    # Instantiate database connection
+    db = sqlite3.connect(DATABASE_PATH)
+    cursor = db.cursor()
+
+    # Set active state
+    sql_query = """Update user_preferences set wakeup_time_hour = ? where id = ?"""
+    data = new_wakeup_hour, 1
+    cursor.execute(sql_query, data)
+    db.commit()
+
+    # Close database connection
+    db.close()
+
+
+def set_wakeup_minute(new_wakeup_minute):
+    """
+    Sets the wakeup minute to the parameter new_wakeup_minute.
+    :param new_wakeup_minute: The new wakeup minute.
+    :type new_wakeup_minute: int
+    :return: None
+    """
+    # Instantiate database connection
+    db = sqlite3.connect(DATABASE_PATH)
+    cursor = db.cursor()
+
+    # Set active state
+    sql_query = """Update user_preferences set wakeup_time_minute = ? where id = ?"""
+    data = new_wakeup_minute, 1
+    cursor.execute(sql_query, data)
+    db.commit()
+
+    # Close database connection
+    db.close()
+
+
+def get_user_preferences():
+    """
+    Starts by grabbing the SQL for the user_preferences table from the sqlite_master table.
+    Then parses it in order to extract only the column names, excluding the column named 'id'.
+    Then grabs the values of the first row in the user_preferences table
+    for each column except for the column named 'id'.
+    Combines these two lists into a dictionary and returns said dictionary.
+    :return: user_preferences (dict)
+    """
+    # Instantiate database connection
+    db = sqlite3.connect(DATABASE_PATH)
+    cursor = db.cursor()
+
+    # Get user preferences column names
+    sql_query = """SELECT sql from sqlite_master where tbl_name = 'user_preferences'"""
+    cursor.execute(sql_query)
+    user_preferences_sql = cursor.fetchone()
+    user_preferences_sql_parsed = str(user_preferences_sql[0]).replace("\n    ", " ")
+    user_preferences_sql_parsed = user_preferences_sql_parsed.split(", ")
+    del user_preferences_sql_parsed[0]
+    user_preferences_column_names = []
+    for i in range(len(user_preferences_sql_parsed)):
+        column_name = user_preferences_sql_parsed[i].split(" ")[0]
+        user_preferences_column_names.append(column_name)
+
+    # Get user preferences values
+    sql_query = """SELECT * FROM user_preferences where id = 1"""
+    cursor.execute(sql_query)
+    user_preferences_values = cursor.fetchone()
+    user_preferences_values_list = list(user_preferences_values)
+    del user_preferences_values_list[0]
+
+    # Close database connection
+    db.close()
+
+    # Convert to dictionary
+    user_preferences = dict(zip(user_preferences_column_names, user_preferences_values_list))
+
+    return user_preferences
 
 
 """
