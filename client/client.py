@@ -10,6 +10,7 @@ import random
 import ast
 import platform
 import os
+import time
 
 SETTINGS_PATH = "client/settings.ini"
 
@@ -182,6 +183,67 @@ def set_alarm_state(server_address, server_port, new_alarm_state):
     connection.close()
 
 
+def is_clean_input(expected_type, value):
+    """
+    Tests if the given value is not empty and that it is of the expected type.
+    :param expected_type: The expected type of the given value.
+    :type: str
+    :param value: The value to test.
+    :type value: str
+    :return: is_clean (bool), reason (str)
+    """
+    is_clean = False
+    reason = ""
+
+    if expected_type == "int":
+        if value != "":
+            try:
+                test = int(value)
+                is_clean = True
+            except ValueError:
+                is_clean = False
+                reason = "ValueError"
+        else:
+            is_clean = False
+            reason = "Empty"
+
+    return is_clean, reason
+
+
+def get_input(prompt, expected_type, speed):
+    """
+    Asks the user for input. Tests if its valid, and if not, ask again until a valid input has been entered.
+    :param prompt: The text that should be used to ask for input.
+    :type prompt: str
+    :param expected_type: The expected type of the given value.
+    :type expected_type: str
+    :param speed: How much time the program shall wait before asking the user for a new value if the previous one
+    was invalid.
+    :type speed: int
+    :type: bool
+    :return: user_input (any)
+    """
+    user_input = None
+    user_input_ok = False
+
+    while not user_input_ok:
+        print(prompt, end="")
+        user_input = input()
+        is_ok, reason = is_clean_input(expected_type, user_input)
+        if is_ok:
+            user_input_ok = True
+        else:
+            print(f"You did enter a correct value. Reason: {reason}.")
+            if speed > 0:
+                print(f"Please try again in {speed} seconds.")
+            time.sleep(speed)
+
+    if expected_type == "int":
+        user_input = int(user_input)
+
+    return user_input
+
+
 def management(server_address, server_port):
     """
     Shows the current user preferences stored on server.
@@ -208,8 +270,7 @@ def management(server_address, server_port):
         display_user_preferences(user_preferences)
 
         # Changing preferences
-        print("\nInput the number of the setting you wish to change: ", end="")
-        preference_to_change = int(input())
+        preference_to_change = get_input("Input the number of the setting you wish to change: ", "int", 2)
 
         # If changing active_state
         if preference_to_change == 1:
@@ -217,23 +278,23 @@ def management(server_address, server_port):
             change_active_state(server_address, server_port, current_active_state)
 
         # If changing wakeup time
-        if preference_to_change == 2:
+        elif preference_to_change == 2:
             print("Changing wakeup time.")
-            new_wakeup_hour = int(input("Please input hour: "))
-            new_wakeup_minute = int(input("Please input minute: "))
+            new_wakeup_hour = get_input("Please input hour: ", "int", 0)
+            new_wakeup_minute = get_input("Please input minute: ", "int", 0)
 
             change_wakeup_time(server_address, server_port, "hour", new_wakeup_hour)
             change_wakeup_time(server_address, server_port, "minute", new_wakeup_minute)
 
-        if preference_to_change == 3:
+        elif preference_to_change == 3:
             print("Changing wakeup window.")
-            new_wakeup_window = int(input("Please input new wakeup window (in minutes): "))
+            new_wakeup_window = get_input("Please input new wakeup window (in minutes): ", "int", 0)
 
             change_wakeup_window(server_address, server_port, new_wakeup_window)
 
-        if preference_to_change == 4:
+        elif preference_to_change == 4:
             print("Changing UTC offset.")
-            new_utc_offset = int(input("Please input new UTC offset: "))
+            new_utc_offset = get_input("Please input new UTC offset: ", "int", 0)
 
             change_utc_offset(server_address, server_port, new_utc_offset)
 
