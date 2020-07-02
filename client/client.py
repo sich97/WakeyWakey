@@ -306,7 +306,8 @@ def display_user_preferences(user_preferences):
     if user_preferences["wakeup_time_minute"] < 10:
         print("0", end="")
     print(str(user_preferences["wakeup_time_minute"]))
-    print("3.\tUTC offset:\t+" + str(user_preferences["utc_offset"]))
+    print("3.\tWakeup window:\t" + str(user_preferences["wakeup_window"]) + " minutes")
+    print("4.\tUTC offset:\t+" + str(user_preferences["utc_offset"]))
 
 
 def load_user_preferences(server_address, server_port):

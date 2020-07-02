@@ -12,9 +12,8 @@ import arrow
 import time
 
 DATABASE_PATH = "server/db"
-MAIN_LOOP_DELAY_SECONDS = 5
-WAKEUP_WINDOW_MINUTES = 5
 SECONDS_IN_A_DAY = 86400
+MAIN_LOOP_DELAY_SECONDS = 5
 
 
 def main():
@@ -41,7 +40,7 @@ def main():
             print(f"Time until wakeup: {readable_time(seconds_left)}.")
 
             # If within wakeup window
-            if seconds_left <= WAKEUP_WINDOW_MINUTES * 60:
+            if seconds_left <= get_wakeup_window() * 60:
                 print("Entered wakeup window.")
                 # Go into alarm mode
                 alarm_mode(seconds_left)
@@ -323,6 +322,48 @@ def set_wakeup_minute(new_wakeup_minute):
     # Set active state
     sql_query = """Update user_preferences set wakeup_time_minute = ? where id = ?"""
     data = new_wakeup_minute, 1
+    cursor.execute(sql_query, data)
+    db.commit()
+
+    # Close database connection
+    db.close()
+
+
+def get_wakeup_window():
+    """
+    Returns the wakeup window, which is stored in the database.
+    :return: wakeup_window (int)
+    """
+    # Instantiate database connection
+    db = sqlite3.connect(DATABASE_PATH)
+    cursor = db.cursor()
+
+    # Get wakeup window
+    sql_query = """SELECT wakeup_window FROM user_preferences"""
+    cursor.execute(sql_query)
+    row0 = cursor.fetchone()
+    wakeup_window = row0[0]
+
+    # Close database connection
+    db.close()
+
+    return wakeup_window
+
+
+def set_wakeup_window(new_wakeup_window):
+    """
+    Sets the wakeup window to the parameter new_wakeup_window.
+    :param new_wakeup_window: The new wakeup window in minutes.
+    :type new_wakeup_window: int
+    :return: None
+    """
+    # Instantiate database connection
+    db = sqlite3.connect(DATABASE_PATH)
+    cursor = db.cursor()
+
+    # Set active state
+    sql_query = """Update user_preferences set wakeup_window = ? where id = ?"""
+    data = new_wakeup_window, 1
     cursor.execute(sql_query, data)
     db.commit()
 
