@@ -14,7 +14,7 @@ import time
 DATABASE_PATH = "server/db"
 MAIN_LOOP_DELAY_SECONDS = 5
 WAKEUP_WINDOW_MINUTES = 5
-MINUTES_IN_A_DAY = 1440
+SECONDS_IN_A_DAY = 86400
 
 
 def main():
@@ -37,14 +37,14 @@ def main():
         # If active
         if get_active_state():
             # Check if within wakeup window
-            time_left = minutes_until_wakeup_time()
-            print("Minutes until wakeup: " + str(time_left))
+            seconds_left = seconds_until_wakeup_time()
+            print(f"Time until wakeup: {readable_time(seconds_left)}.")
 
             # If within wakeup window
-            if time_left <= WAKEUP_WINDOW_MINUTES:
+            if seconds_left <= WAKEUP_WINDOW_MINUTES * 60:
                 print("Entered wakeup window.")
                 # Go into alarm mode
-                alarm_mode(time_left)
+                alarm_mode(seconds_left)
 
 
 """
@@ -378,32 +378,97 @@ def get_user_preferences():
 """
 
 
-def minutes_until_wakeup_time():
+def readable_time(seconds):
     """
-    Returns how many minutes are left until wakeup time.
+    Takes any number of seconds and turns it into days, hours, minutes and seconds in a readable format.
+    :param seconds: 1/60th of a minute
+    :type seconds: int
+    :return: output (str)
+    """
+    # Convert to days
+    days, hours, minutes, seconds = seconds_to_days(seconds)
+
+    # Instantiate output_string
+    output = ""
+
+    # Add if non-zero
+    if days != 0:
+        output += str(days) + " days, "
+    if hours != 0:
+        output += str(hours) + " hours, "
+    if minutes != 0:
+        output += str(minutes) + " minutes, "
+    if seconds != 0:
+        output += str(seconds) + " seconds"
+
+    return output
+
+
+def seconds_to_days(seconds):
+    """
+    Takes any number of seconds and returns its constitutive amount of days, hours, minutes and remaining seconds.
+    :param seconds: 1/60th of a minute.
+    :type seconds: int
+    :return: days (int), remainder_hours (int), minutes (int), seconds (int)
+    """
+    minutes, seconds = seconds_to_minutes(seconds)
+    hours, minutes, seconds = seconds_to_hours(convert_to_seconds(0, 0, minutes, seconds))
+    days = hours // 24
+    remainder_hours = hours % 24
+
+    return days, remainder_hours, minutes, seconds
+
+
+def seconds_to_hours(seconds):
+    """
+    Takes any number of seconds and returns its constitutive amount of hours, minutes and remaining seconds.
+    :param seconds: 1/60th of a minute.
+    :type seconds: int
+    :return: hours (int), remainder_minutes (int), seconds (int)
+    """
+    minutes, seconds = seconds_to_minutes(seconds)
+    hours = minutes // 60
+    remainder_minutes = minutes % 60
+
+    return hours, remainder_minutes, seconds
+
+
+def seconds_to_minutes(seconds):
+    """
+    Takes any number of seconds and returns its constitutive amount ot minutes and remaining seconds.
+    :param seconds: 1/60th of a minute.
+    :type seconds: int
+    :return: minutes (int), remainder_seconds (int)
+    """
+    minutes = seconds // 60
+    remainder_seconds = seconds % 60
+
+    return minutes, remainder_seconds
+
+
+def seconds_until_wakeup_time():
+    """
+    Returns how many seconds are left until wakeup time.
     :return: time_left (int)
     """
     # Get newest settings
     wakeup_time_hour, wakeup_time_minute, utc_offset = load_settings("minimal")
 
     # Then get the wakeup timestamp
-    wakeup_timestamp = convert_to_minutes(wakeup_time_hour, wakeup_time_minute)
-
-    # Get current timestamp
-    current_timestamp = current_time_in_minutes(utc_offset)
+    wakeup_timestamp_in_seconds = convert_to_seconds(0, wakeup_time_hour, wakeup_time_minute, 0)
 
     # Time left until wakeup time
-    time_left = wakeup_timestamp - current_timestamp
+    seconds_left = wakeup_timestamp_in_seconds - current_time_in_seconds(utc_offset)
 
     # In the case that time_left is negative (meaning that the alarm has already gone off this day)
-    if time_left < 0:
+    if seconds_left < 0:
         # Add a day
-        time_left += MINUTES_IN_A_DAY
+        seconds_left += SECONDS_IN_A_DAY
 
-    return time_left
+    return seconds_left
 
 
-def current_time_in_minutes(utc_offset):
+def current_time_in_seconds(utc_offset):
     """
     Gets the current hour and minute and returns the total of that in minutes.
     :param utc_offset: The amount of hours ahead of UTC.
@@ -417,31 +482,34 @@ def current_time_in_minutes(utc_offset):
     current_time_parsed = current_time.split(":")
     current_hour = int(current_time_parsed[0])
     current_minute = int(current_time_parsed[1])
+    current_second = int(current_time_parsed[2])
 
-    # Then get the total amount of minutes
-    current_timestamp = convert_to_minutes(current_hour, current_minute)
+    # Then get the total amount of seconds
+    current_timestamp = convert_to_seconds(0, current_hour, current_minute, current_second)
 
     return current_timestamp
 
 
-def convert_to_minutes(hour, minutes):
+def convert_to_seconds(days, hour, minutes, seconds):
     """
-    Takes any amount of hours, converts it to minutes and then adds the additional minutes.
+    Takes any amount of days, hours, minutes and seconds and returns the total amount of seconds.
+    :param days: 24 hours.
+    :type days: int
     :param hour: 60 minutes.
     :type hour: int
     :param minutes: 60 seconds.
     :type: int
+    :param seconds: 1/60th of a minute
+    :type seconds: int
     :return: timestamp (int)
     """
-    hours_in_minutes = 60 * hour
-    timestamp = hours_in_minutes + minutes
 
-    return timestamp
+    return ((days * 24 + hour) * 60 + minutes) * 60 + seconds
 
 
 def get_local_time(utc_offset):
     """
-    Gets the current UTC time, shifts it according to the parameter utc_offset, then returns it in the format HH:mm.
+    Gets the current UTC time, shifts it according to the parameter utc_offset, then returns it in the format HH:mm:ss.
     :param utc_offset: The amount of hours ahead of UTC.
     :type utc_offset: int
     :return: local_time_parsed (arrow)
@@ -453,7 +521,7 @@ def get_local_time(utc_offset):
     local_time = utc.shift(hours=utc_offset)
 
     # Format it
-    local_time_parsed = local_time.format("HH:mm")
+    local_time_parsed = local_time.format("HH:mm:ss")
 
     return local_time_parsed
 
@@ -474,9 +542,8 @@ def alarm_mode(countdown):
     :return: None
     """
     # Wait until actual wakeup time
-    seconds_left = countdown * 60
-    print("Waiting for " + str(seconds_left) + " seconds...")
-    time.sleep(seconds_left)
+    print("Waiting for " + str(countdown) + " seconds...")
+    time.sleep(countdown)
 
     print("Actual wakeup time reached.")
 
