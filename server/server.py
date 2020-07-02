@@ -559,6 +559,7 @@ def alarm_mode(countdown):
     print("User is awake!")
 
     # Make sure the buzzer turns off
+    set_alarm_state(0)
     buzzer(0)
 
     # Deactivate active_state
