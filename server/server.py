@@ -200,25 +200,84 @@ def communication(s):
         client_socket.close()
 
 
-def get_alarm_state():
+def db_get(columns, table, column_condition_name, column_condition_value):
     """
-    Returns the alarm state, which is stored in the database.
-    :return: alarm_state (int)
+    Gets the columns from the given table, of the given rows, from the database.
+    :param columns: Which database columns to get.
+    :type columns: list of str
+    :param table: Which table to get information from.
+    :type table: str
+    :param column_condition_name: Which column to test for a certain condition for its row to be selected.
+    :type column_condition_name: str
+    :param column_condition_value: What the value of the column_condition must match for its row to be selected.
+    :type column_condition_value: any
+    :return: output (list of list)
     """
     # Instantiate database connection
     db = sqlite3.connect(DATABASE_PATH)
     cursor = db.cursor()
 
-    # Get alarm state
-    sql_query = """SELECT alarm_state FROM server_settings"""
-    cursor.execute(sql_query)
-    row0 = cursor.fetchone()
-    alarm_state = row0[0]
+    # Create SQL query
+    sql_query = "SELECT "
+    for column_id, column in enumerate(columns):
+        if column_id != len(columns) - 1:
+            column += ", "
+        else:
+            column += " "
+        sql_query += column
+    sql_query += "FROM " + table
+
+    # Executing query
+    if column_condition_name != "":
+        sql_query += " WHERE " + column_condition_name + " = ?"
+        cursor.execute(sql_query, (column_condition_value,))
+    else:
+        cursor.execute(sql_query)
+
+    # Get rows
+    data = []
+    all_rows = cursor.fetchall()
+    for row in all_rows:
+        data.append(row)
 
     # Close database connection
     db.close()
 
-    return alarm_state
+    return data
+
+
+def db_set(column, table, column_condition_name, column_condition_value, new_value):
+    """
+    Updates a column within the database.
+    :param column: Which database column to update.
+    :type column: str
+    :param table: Which table to update.
+    :type table: str
+    :param column_condition_name: Which column to test for a certain condition for its row to be selected.
+    :type column_condition_name: str
+    :param column_condition_value: What the value of the column_condition must match for its row to be selected.
+    :type column_condition_value: any
+    :param new_value: What to update the column with.
+    :type new_value: any
+    :return: None
+    """
+    # Instantiate database connection
+    db = sqlite3.connect(DATABASE_PATH)
+    cursor = db.cursor()
+
+    # Create SQL query
+    sql_query = "UPDATE " + table + " SET " + column + " = ?"
+
+    # Executing query
+    if column_condition_name != "":
+        sql_query += " WHERE " + column_condition_name + " = ?"
+        cursor.execute(sql_query, (new_value, column_condition_value))
+    else:
+        cursor.execute(sql_query, (new_value,))
+    db.commit()
+
+    # Close database connection
+    db.close()
 
 
 def set_alarm_state(new_alarm_state):
@@ -228,39 +287,7 @@ def set_alarm_state(new_alarm_state):
     :type new_alarm_state: int
     :return: None
     """
-    # Instantiate database connection
-    db = sqlite3.connect(DATABASE_PATH)
-    cursor = db.cursor()
-
-    # Set alarm state
-    sql_query = """Update server_settings set alarm_state = ? where id = ?"""
-    data = new_alarm_state, 1
-    cursor.execute(sql_query, data)
-    db.commit()
-
-    # Close database connection
-    db.close()
-
-
-def get_active_state():
-    """
-    Returns the active state, which is stored in the database.
-    :return: active_state (int)
-    """
-    # Instantiate database connection
-    db = sqlite3.connect(DATABASE_PATH)
-    cursor = db.cursor()
-
-    # Get active state
-    sql_query = """SELECT active_state FROM user_preferences"""
-    cursor.execute(sql_query)
-    row0 = cursor.fetchone()
-    active_state = row0[0]
-
-    # Close database connection
-    db.close()
-
-    return active_state
+    db_set("alarm_state", "server_settings", "id", 1, new_alarm_state)
 
 
 def set_active_state(new_active_state):
@@ -270,18 +297,7 @@ def set_active_state(new_active_state):
     :type new_active_state: int
     :return: None
     """
-    # Instantiate database connection
-    db = sqlite3.connect(DATABASE_PATH)
-    cursor = db.cursor()
-
-    # Set active state
-    sql_query = """Update user_preferences set active_state = ? where id = ?"""
-    data = new_active_state, 1
-    cursor.execute(sql_query, data)
-    db.commit()
-
-    # Close database connection
-    db.close()
+    db_set("active_state", "user_preferences", "id", 1, new_active_state)
 
 
 def set_wakeup_hour(new_wakeup_hour):
@@ -291,18 +307,7 @@ def set_wakeup_hour(new_wakeup_hour):
     :type new_wakeup_hour: int
     :return: None
     """
-    # Instantiate database connection
-    db = sqlite3.connect(DATABASE_PATH)
-    cursor = db.cursor()
-
-    # Set active state
-    sql_query = """Update user_preferences set wakeup_time_hour = ? where id = ?"""
-    data = new_wakeup_hour, 1
-    cursor.execute(sql_query, data)
-    db.commit()
-
-    # Close database connection
-    db.close()
+    db_set("wakeup_time_hour", "user_preferences", "id", 1, new_wakeup_hour)
 
 
 def set_wakeup_minute(new_wakeup_minute):
@@ -312,39 +317,7 @@ def set_wakeup_minute(new_wakeup_minute):
     :type new_wakeup_minute: int
     :return: None
     """
-    # Instantiate database connection
-    db = sqlite3.connect(DATABASE_PATH)
-    cursor = db.cursor()
-
-    # Set active state
-    sql_query = """Update user_preferences set wakeup_time_minute = ? where id = ?"""
-    data = new_wakeup_minute, 1
-    cursor.execute(sql_query, data)
-    db.commit()
-
-    # Close database connection
-    db.close()
-
-
-def get_wakeup_window():
-    """
-    Returns the wakeup window, which is stored in the database.
-    :return: wakeup_window (int)
-    """
-    # Instantiate database connection
-    db = sqlite3.connect(DATABASE_PATH)
-    cursor = db.cursor()
-
-    # Get wakeup window
-    sql_query = """SELECT wakeup_window FROM user_preferences"""
-    cursor.execute(sql_query)
-    row0 = cursor.fetchone()
-    wakeup_window = row0[0]
-
-    # Close database connection
-    db.close()
-
-    return wakeup_window
+    db_set("wakeup_time_minute", "user_preferences", "id", 1, new_wakeup_minute)
 
 
 def set_wakeup_window(new_wakeup_window):
@@ -354,18 +327,7 @@ def set_wakeup_window(new_wakeup_window):
     :type new_wakeup_window: int
     :return: None
     """
-    # Instantiate database connection
-    db = sqlite3.connect(DATABASE_PATH)
-    cursor = db.cursor()
-
-    # Set active state
-    sql_query = """Update user_preferences set wakeup_window = ? where id = ?"""
-    data = new_wakeup_window, 1
-    cursor.execute(sql_query, data)
-    db.commit()
-
-    # Close database connection
-    db.close()
+    db_set("wakeup_window", "user_preferences", "id", 1, new_wakeup_window)
 
 
 def set_utc_offset(new_utc_offset):
@@ -375,18 +337,37 @@ def set_utc_offset(new_utc_offset):
     :type new_utc_offset: int
     :return: None
     """
-    # Instantiate database connection
-    db = sqlite3.connect(DATABASE_PATH)
-    cursor = db.cursor()
+    db_set("utc_offset", "user_preferences", "id", 1, new_utc_offset)
 
-    # Set utc offset
-    sql_query = """Update user_preferences set utc_offset = ? where id = ?"""
-    data = new_utc_offset, 1
-    cursor.execute(sql_query, data)
-    db.commit()
 
-    # Close database connection
-    db.close()
+def get_alarm_state():
+    """
+    Returns the alarm state, which is stored in the database.
+    :return: alarm_state (int)
+    """
+    alarm_state = db_get(["alarm_state"], "server_settings", "", None)[0][0]
+
+    return alarm_state
+
+
+def get_active_state():
+    """
+    Returns the active state, which is stored in the database.
+    :return: active_state (int)
+    """
+    active_state = db_get(["active_state"], "user_preferences", "", None)[0][0]
+
+    return active_state
+
+
+def get_wakeup_window():
+    """
+    Returns the wakeup window, which is stored in the database.
+    :return: wakeup_window (int)
+    """
+    wakeup_window = db_get(["wakeup_window"], "user_preferences", "", None)[0][0]
+
+    return wakeup_window
 
 
 def get_user_preferences():
@@ -399,13 +380,7 @@ def get_user_preferences():
     :return: user_preferences (dict)
     """
     # Instantiate database connection
-    db = sqlite3.connect(DATABASE_PATH)
-    cursor = db.cursor()
-
-    # Get user preferences column names
-    sql_query = """SELECT sql from sqlite_master where tbl_name = 'user_preferences'"""
-    cursor.execute(sql_query)
-    user_preferences_sql = cursor.fetchone()
+    user_preferences_sql = db_get(["sql"], "sqlite_master", "tbl_name", "user_preferences")[0]
     user_preferences_sql_parsed = str(user_preferences_sql[0]).replace("\n    ", " ")
     user_preferences_sql_parsed = user_preferences_sql_parsed.split(", ")
     del user_preferences_sql_parsed[0]
@@ -415,14 +390,9 @@ def get_user_preferences():
         user_preferences_column_names.append(column_name)
 
     # Get user preferences values
-    sql_query = """SELECT * FROM user_preferences where id = 1"""
-    cursor.execute(sql_query)
-    user_preferences_values = cursor.fetchone()
+    user_preferences_values = db_get(["*"], "user_preferences", "", None)[0]
     user_preferences_values_list = list(user_preferences_values)
     del user_preferences_values_list[0]
-
-    # Close database connection
-    db.close()
 
     # Convert to dictionary
     user_preferences = dict(zip(user_preferences_column_names, user_preferences_values_list))
