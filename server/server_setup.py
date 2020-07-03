@@ -63,7 +63,7 @@ def create_database():
     sql_query = """INSERT INTO user_preferences(wakeup_time_hour, wakeup_time_minute, utc_offset, wakeup_window,
     active_state)
     VALUES(?, ?, ?, ?, ?)"""
-    data = 16, 00, 2, 5, 0
+    data = 16, 00, 2, 2, 0
     cursor.execute(sql_query, data)
 
     # Save changes to database
