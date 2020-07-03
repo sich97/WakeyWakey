@@ -419,7 +419,10 @@ def display_user_preferences(user_preferences):
         print("Yes")
     else:
         print("No")
-    print("2.\tWakeup time:\t" + str(user_preferences["wakeup_time_hour"]) + ":", end="")
+    print("2.\tWakeup time:\t", end="")
+    if user_preferences["wakeup_time_hour"] < 10:
+        print("0", end="")
+    print(str(user_preferences["wakeup_time_hour"]) + ":", end="")
     if user_preferences["wakeup_time_minute"] < 10:
         print("0", end="")
     print(str(user_preferences["wakeup_time_minute"]))
