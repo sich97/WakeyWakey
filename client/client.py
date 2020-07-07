@@ -6,13 +6,19 @@ This program lets you change settings as well as shut the alarm off once it's st
 
 import configparser
 import socket
-import random
 import ast
 import platform
 import os
 import time
+import tkinter
+import random
+import numpy as np
+import pyautogui
 
 SETTINGS_PATH = "client/settings.ini"
+MIN_LINE_LENGTH = 5
+LINE_THICKNESS = 8
+BORDER_MARGIN = 10
 
 
 def main():
@@ -23,13 +29,16 @@ def main():
     :return: None
     """
     # Initialization
-    server_address, server_port, alarm_state = initialize()
+    server_address, server_port, window_height, window_width, alarm_state = initialize()
+
+    # Client dev
+    alarm_state = 1
 
     # If the alarm is on
     if alarm_state == 1:
 
         # Test if the user is awake
-        awake_test()
+        awake_test(window_height, window_width)
 
         # After having completed the awoke_test properly, stop the alarm
         set_alarm_state(server_address, server_port, 0)
@@ -51,21 +60,21 @@ def main():
 def initialize():
     """
     Loads settings from settings.ini and gets the current state of the alarm.
-    :return: server_address (str), server_port(int), alarm_state (int)
+    :return: server_address (str), server_port(int), window_height (int), window_width (int), alarm_state (int)
     """
     # Load settings from settings.ini
-    server_address, server_port = load_settings()
+    server_address, server_port, window_height, window_width = load_settings()
 
     # Get server state
     alarm_state = get_alarm_state(server_address, server_port)
 
-    return server_address, server_port, alarm_state
+    return server_address, server_port, window_height, window_width, alarm_state
 
 
 def load_settings():
     """
     Loads settings.ini and returns its information.
-    :return: server_address (str), server_port (str)
+    :return: server_address (str), server_port (str), window_height (int), window_width (int)
     """
     # Load settings.ini
     config = configparser.ConfigParser()
@@ -73,8 +82,10 @@ def load_settings():
     config.sections()
     server_address = config['SERVER']['Address']
     server_port = config['SERVER']['Port']
+    window_height = int(config['CLIENT']['Window height'])
+    window_width = int(config['CLIENT']['Window width'])
 
-    return server_address, server_port
+    return server_address, server_port, window_height, window_width
 
 
 def get_alarm_state(server_address, server_port):
@@ -114,25 +125,230 @@ def get_alarm_state(server_address, server_port):
 """
 
 
-def awake_test():
+def awake_test(window_height, window_width):
     """
     Gives the user challenges until one is overcome, in which case we assume the user is awake enough to not fall back
     to sleep.
+    :param window_height: How many pixels high the GUI should be.
+    :type window_height: int
+    :param window_width: How many pixels wide the GUI should be.
+    :type window_width: int
     :return: None
     """
-    awake = False
-    while not awake:
+    # Create GUI
+    window, canvas = create_awake_test_gui(window_height, window_width)
 
-        # Temporary challenge for development purposes
-        first_int = random.randint(1, 10)
-        second_int = random.randint(1, 10)
-        print("What is " + str(first_int) + " + " + str(second_int) + "?")
-        answer = int(input("Type your answer here: "))
-        if answer == first_int + second_int:
-            awake = True
-            print("Congratulations, you're awake!")
+    # Create test
+    start, end_block = create_test(canvas)
+
+    # Run tests
+    awake = tkinter.BooleanVar(canvas, False, "awake")
+    while not awake.get():
+        awake.set(run_test(canvas, start, end_block))
+
+    print("Congratulations. You passed the test!")
+    input()
+
+
+def run_test(canvas, start, end_block):
+    # Place mouse pointer over start_block
+    pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
+
+    success = False
+    while not success:
+        canvas.update()
+
+        # Check mouse position
+        mouse_x, mouse_y = pyautogui.position()
+
+        # Check if overlap
+        if len(canvas.find_overlapping(mouse_x, mouse_y, mouse_x, mouse_y)) < 1:
+            # Touching wall
+            print("You have touched the wall! Moving you back to start.")
+            pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
+            time.sleep(0.1)
+            pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
+
+        # Check if in goal
+        elif end_block in canvas.find_overlapping(mouse_x, mouse_y, mouse_x, mouse_y):
+            success = True
+
+    return success
+
+
+def create_test(canvas):
+    """
+    Fills the canvas with a graphical test, and a success condition.
+    :param canvas: The GUI in which the test is drawn onto.
+    :type canvas: tkinter.Canvas
+    :return: start (np.array), end_block (tkinter.create_rectangle)
+    """
+    # Choose which side the mouse pointer shall start on (Left: 1, Top: 2)
+    start_side = random.randint(1, 2)
+
+    size = np.array([canvas.winfo_width() - 3 - BORDER_MARGIN, canvas.winfo_height() - 3 - BORDER_MARGIN])
+    print(f"Size : {size}.")
+
+    # Create start and end
+    if start_side == 1:
+        # If starting side is left
+        start = np.array([BORDER_MARGIN, random.randint(BORDER_MARGIN, size[1])])
+        canvas.create_rectangle(start[0], start[1], start[0] + LINE_THICKNESS * 2, start[1] + LINE_THICKNESS * 2,
+                                fill="green", outline="green")
+
+        end = np.array([size[0], random.randint(BORDER_MARGIN, size[1])])
+        end_block = canvas.create_rectangle(end[0], end[1], end[0] - LINE_THICKNESS * 2, end[1] + LINE_THICKNESS * 2,
+                                            fill="red", outline="red")
+
+    else:
+        # If starting side is top
+        start = np.array([random.randint(BORDER_MARGIN, size[0]), BORDER_MARGIN])
+        canvas.create_rectangle(start[0], start[1], start[0] + LINE_THICKNESS * 2, start[1] + LINE_THICKNESS * 2,
+                                              fill="green", outline="green")
+
+        end = np.array([random.randint(BORDER_MARGIN, size[0]), size[1]])
+        end_block = canvas.create_rectangle(end[0], end[1], end[0] + LINE_THICKNESS * 2, end[1] - LINE_THICKNESS * 2,
+                                            fill="red", outline="red")
+
+    print(f"Start: {start}, end: {end}.")
+
+    horizontal_lines = []
+    vertical_lines = []
+
+    # Create start line
+    line_end, previous_direction, path_complete = draw_line(start, end, size, canvas, end_block,
+                                                            [0, 0], horizontal_lines, vertical_lines)
+    canvas.update()
+
+    while not path_complete:
+        line_end, previous_direction, path_complete = draw_line(line_end, end, size, canvas, end_block,
+                                                                previous_direction, horizontal_lines, vertical_lines)
+        canvas.update()
+
+    for line in horizontal_lines:
+        x0, y0, x1, y1 = canvas.coords(line)
+        y1 += LINE_THICKNESS - 1
+        canvas.delete(line)
+        canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black")
+
+    horizontal_lines.clear()
+
+    for line in vertical_lines:
+        x0, y0, x1, y1 = canvas.coords(line)
+        x1 += LINE_THICKNESS - 1
+        canvas.delete(line)
+        canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black")
+
+    vertical_lines.clear()
+
+    canvas.update()
+
+    return start, end_block
+
+
+def draw_line(start, end, size, canvas, end_block, previous_direction, horizontal_lines, vertical_lines):
+    print(f"\nDraw line from {start} to {end}.")
+
+    # Get direction
+    direction = determine_direction(start, end, previous_direction)
+    print(f"Direction: {direction}.")
+
+    # Get line length
+    max_direction_length = np.multiply(size, direction)
+    max_direction_length = max_direction_length[max_direction_length != 0]
+    max_direction_length = abs(int(max_direction_length[0]))
+    random_line_length = random.randint(MIN_LINE_LENGTH, max_direction_length)
+
+    # Calculate line end
+    line_end = np.add(start, np.multiply(direction, random_line_length))
+    if line_end[0] > size[0] or line_end[0] < BORDER_MARGIN:
+        line_end[0] = size[0]
+    if line_end[1] > size[1] or line_end[1] < BORDER_MARGIN:
+        line_end[1] = size[1]
+    print(f"Line end: {line_end}.")
+
+    # Draw line
+    if direction[0] == 1 or direction[0] == -1:
+        horizontal_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
+                                                        fill="black", outline="black"))
+    elif direction[1] == 1 or direction[1] == -1:
+        vertical_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
+                                                      fill="black", outline="black"))
+
+    # Check if the new line overlaps the goal
+    if end_block in canvas.find_overlapping(start[0], start[1], line_end[0], line_end[1]):
+        covers_goal = True
+    else:
+        covers_goal = False
+    return line_end, direction, covers_goal
+
+
+def determine_direction(source, destination, previous_direction):
+    """
+    Determines the cardinal direction that gives the shortest path between point a (source) and b (destination)
+    :param source: Point A
+    :type source: np.array
+    :param destination: Point B
+    :type destination: np.array
+    :param previous_direction: The direction which was last used.
+    :type previous_direction: np.array
+    :return: np.array
+    """
+    # Find vector from source to destination
+    direct_path = np.subtract(destination, source)
+
+    # Return most impacting direction as a scalar vector
+    if abs(direct_path[0]) >= abs(direct_path[1]):
+        if direct_path[0] >= 0:
+            direction = np.array([1, 0])
         else:
-            print("You're not yet awake enough. Try again.")
+            direction = np.array([-1, 0])
+    else:
+        if direct_path[1] >= 0:
+            direction = np.array([0, 1])
+        else:
+            direction = np.array([0, -1])
+
+    previous_opposite_direction = previous_direction
+    previous_opposite_direction = previous_opposite_direction[previous_opposite_direction != 0] * -1
+    print(f"Previous opposite direction: {previous_opposite_direction}")
+
+    if np.array_equal(direction, previous_direction) or np.array_equal(direction, previous_opposite_direction):
+        x = direction[0]
+        y = direction[1]
+        direction = np.array([y, x])
+
+    return direction
+
+
+def create_awake_test_gui(window_height, window_width):
+    """
+    Creates the GUI
+    :param window_height: How many pixels high the GUI should be.
+    :type window_height: int
+    :param window_width: How many pixels wide the GUI should be.
+    :type window_width: int
+    :return: window (tkinter.Tk), canvas (tkinter.Canvas)
+    """
+    # Sets minimum window height
+    if window_height < 36:
+        window_height = 36
+    # Sets minimum window width
+    if window_width < 36:
+        window_width = 36
+
+    # Creating the main window
+    window = tkinter.Tk()
+    window.minsize(height=window_height, width=window_width)
+    window.title("Wakey Wakey - Awake test")
+
+    # The canvas that the cells are drawn onto
+    canvas = tkinter.Canvas(window, height=window_height, width=window_width, bg="white")
+
+    canvas.grid(row=0, column=0)
+    canvas.update()
+
+    return window, canvas
 
 
 """
