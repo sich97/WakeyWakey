@@ -14,6 +14,8 @@ import tkinter
 import random
 import numpy as np
 import pyautogui
+from PIL import Image, ImageDraw
+from simpleimage import SimpleImage
 
 SETTINGS_PATH = "client/settings.ini"
 MIN_LINE_LENGTH = 5
@@ -139,18 +141,22 @@ def awake_test(window_height, window_width):
     window, canvas = create_awake_test_gui(window_height, window_width)
 
     # Create test
-    start, end_block = create_test(canvas)
+    start, image_path = create_test(canvas)
 
     # Run tests
     awake = tkinter.BooleanVar(canvas, False, "awake")
     while not awake.get():
-        awake.set(run_test(canvas, start, end_block))
+        awake.set(run_test(canvas, start, image_path))
 
     print("Congratulations. You passed the test!")
     input()
 
 
-def run_test(canvas, start, end_block):
+def run_test(canvas, start, image_path):
+    # Load game image
+    game_image = tkinter.PhotoImage(file=image_path)
+    canvas.create_image(0, 0, image=game_image, anchor="nw")
+
     # Place mouse pointer over start_block
     pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
 
@@ -161,17 +167,17 @@ def run_test(canvas, start, end_block):
         # Check mouse position
         mouse_x, mouse_y = pyautogui.position()
 
-        # Check if overlap
-        if len(canvas.find_overlapping(mouse_x, mouse_y, mouse_x, mouse_y)) < 1:
-            # Touching wall
-            print("You have touched the wall! Moving you back to start.")
-            pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
-            time.sleep(0.1)
-            pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
-
-        # Check if in goal
-        elif end_block in canvas.find_overlapping(mouse_x, mouse_y, mouse_x, mouse_y):
-            success = True
+        current_color = game_image.get(mouse_x, mouse_y)
+        # Is the color not black?
+        if current_color != (0, 0, 0):
+            # Is the color red or green?
+            if current_color == (255, 0, 0) or current_color == (0, 128, 0):
+                # Is the color red?
+                if current_color == (255, 0, 0):
+                    success = True
+            else:
+                print("You have touched the wall! Returning to start.")
+                pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
 
     return success
 
@@ -181,8 +187,12 @@ def create_test(canvas):
     Fills the canvas with a graphical test, and a success condition.
     :param canvas: The GUI in which the test is drawn onto.
     :type canvas: tkinter.Canvas
-    :return: start (np.array), end_block (tkinter.create_rectangle)
+    :return: start (np.array), image_path (str)
     """
+    # Create image and draw object
+    image = Image.new("RGB", (canvas.winfo_width() - 3, canvas.winfo_height() - 3), "white")
+    draw = ImageDraw.Draw(image)
+
     # Choose which side the mouse pointer shall start on (Left: 1, Top: 2)
     start_side = random.randint(1, 2)
 
@@ -194,21 +204,25 @@ def create_test(canvas):
         # If starting side is left
         start = np.array([BORDER_MARGIN, random.randint(BORDER_MARGIN, size[1])])
         canvas.create_rectangle(start[0], start[1], start[0] + LINE_THICKNESS * 2, start[1] + LINE_THICKNESS * 2,
-                                fill="green", outline="green")
+                                fill="green")
+        draw.rectangle([start[0], start[1], start[0] + LINE_THICKNESS * 2, start[1] + LINE_THICKNESS * 2], fill="green")
 
         end = np.array([size[0], random.randint(BORDER_MARGIN, size[1])])
         end_block = canvas.create_rectangle(end[0], end[1], end[0] - LINE_THICKNESS * 2, end[1] + LINE_THICKNESS * 2,
-                                            fill="red", outline="red")
+                                            fill="red")
+        draw.rectangle([end[0], end[1], end[0] - LINE_THICKNESS * 2, end[1] + LINE_THICKNESS * 2], fill="red")
 
     else:
         # If starting side is top
         start = np.array([random.randint(BORDER_MARGIN, size[0]), BORDER_MARGIN])
         canvas.create_rectangle(start[0], start[1], start[0] + LINE_THICKNESS * 2, start[1] + LINE_THICKNESS * 2,
-                                              fill="green", outline="green")
+                                              fill="green")
+        draw.rectangle([start[0], start[1], start[0] + LINE_THICKNESS * 2, start[1] + LINE_THICKNESS * 2], fill="green")
 
         end = np.array([random.randint(BORDER_MARGIN, size[0]), size[1]])
         end_block = canvas.create_rectangle(end[0], end[1], end[0] + LINE_THICKNESS * 2, end[1] - LINE_THICKNESS * 2,
-                                            fill="red", outline="red")
+                                            fill="red")
+        draw.rectangle([end[0], end[1], end[0] + LINE_THICKNESS * 2, end[1] - LINE_THICKNESS * 2], fill="red")
 
     print(f"Start: {start}, end: {end}.")
 
@@ -217,36 +231,46 @@ def create_test(canvas):
 
     # Create start line
     line_end, previous_direction, path_complete = draw_line(start, end, size, canvas, end_block,
-                                                            [0, 0], horizontal_lines, vertical_lines)
+                                                            [0, 0], horizontal_lines, vertical_lines, draw)
     canvas.update()
 
     while not path_complete:
         line_end, previous_direction, path_complete = draw_line(line_end, end, size, canvas, end_block,
-                                                                previous_direction, horizontal_lines, vertical_lines)
+                                                                previous_direction, horizontal_lines, vertical_lines,
+                                                                draw)
         canvas.update()
 
-    for line in horizontal_lines:
-        x0, y0, x1, y1 = canvas.coords(line)
-        y1 += LINE_THICKNESS - 1
-        canvas.delete(line)
-        canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black")
+    # Convert to image
+    image_path = "client/game_image.gif"
+    image.save(image_path)
+    canvas.delete("all")
 
-    horizontal_lines.clear()
+    increase_line_thickness(image_path)
+    increase_line_thickness(image_path)
+    increase_line_thickness(image_path)
 
-    for line in vertical_lines:
-        x0, y0, x1, y1 = canvas.coords(line)
-        x1 += LINE_THICKNESS - 1
-        canvas.delete(line)
-        canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black")
-
-    vertical_lines.clear()
-
-    canvas.update()
-
-    return start, end_block
+    return start, image_path
 
 
-def draw_line(start, end, size, canvas, end_block, previous_direction, horizontal_lines, vertical_lines):
+def increase_line_thickness(image_path):
+    original_image = SimpleImage(image_path)
+    new_image = SimpleImage.blank(original_image.width, original_image.height, "white")
+    for pixel in original_image:
+        new_image.set_pixel(pixel.x, pixel.y, pixel)
+        if pixel.red == 0 and pixel.green == 0 and pixel.blue == 0:
+            new_image.set_pixel(pixel.x, pixel.y - 1, pixel)
+            new_image.set_pixel(pixel.x + 1, pixel.y - 1, pixel)
+            new_image.set_pixel(pixel.x + 1, pixel.y, pixel)
+            new_image.set_pixel(pixel.x + 1, pixel.y + 1, pixel)
+            new_image.set_pixel(pixel.x, pixel.y + 1, pixel)
+            new_image.set_pixel(pixel.x - 1, pixel.y + 1, pixel)
+            new_image.set_pixel(pixel.x - 1, pixel.y, pixel)
+            new_image.set_pixel(pixel.x - 1, pixel.y - 1, pixel)
+
+    new_image.save(image_path)
+
+
+def draw_line(start, end, size, canvas, end_block, previous_direction, horizontal_lines, vertical_lines, draw):
     print(f"\nDraw line from {start} to {end}.")
 
     # Get direction
@@ -270,10 +294,12 @@ def draw_line(start, end, size, canvas, end_block, previous_direction, horizonta
     # Draw line
     if direction[0] == 1 or direction[0] == -1:
         horizontal_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
-                                                        fill="black", outline="black"))
+                                                        fill="black"))
+        draw.rectangle([start[0], start[1], line_end[0], line_end[1]], fill="black")
     elif direction[1] == 1 or direction[1] == -1:
         vertical_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
-                                                      fill="black", outline="black"))
+                                                      fill="black"))
+        draw.rectangle([start[0], start[1], line_end[0], line_end[1]], fill="black")
 
     # Check if the new line overlaps the goal
     if end_block in canvas.find_overlapping(start[0], start[1], line_end[0], line_end[1]):
