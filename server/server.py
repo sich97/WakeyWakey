@@ -10,10 +10,12 @@ import multiprocessing
 import socket
 import arrow
 import time
+from gpiozero import Buzzer
 
 DATABASE_PATH = "server/db"
 SECONDS_IN_A_DAY = 86400
 MAIN_LOOP_DELAY_SECONDS = 5
+BUZZER_PIN = 3
 
 
 def main():
@@ -26,7 +28,7 @@ def main():
     :return: None
     """
     # Initialization
-    initialize()
+    bz = initialize()
 
     # Main loop
     while True:
@@ -43,7 +45,7 @@ def main():
             if seconds_left <= get_wakeup_window() * 60:
                 print("Entered wakeup window.")
                 # Go into alarm mode
-                alarm_mode(seconds_left)
+                alarm_mode(seconds_left, bz)
 
 
 """
@@ -56,8 +58,11 @@ def main():
 def initialize():
     """
     Loads settings and sets up TCP communication.
-    :return: None
+    :return: bz (gpiozero.Buzzer)
     """
+    # Instantiate buzzer
+    bz = Buzzer(BUZZER_PIN)
+
     # Load settings
     bind_address, bind_port, wakeup_time_hour, wakeup_time_minute, utc_offset = load_settings("all")
 
@@ -68,6 +73,8 @@ def initialize():
     # Start the management process for communication with client
     management_process = multiprocessing.Process(target=communication, args=(s,))
     management_process.start()
+
+    return bz
 
 
 def load_settings(degree):
@@ -562,12 +569,14 @@ def get_local_time(utc_offset):
 """
 
 
-def alarm_mode(countdown):
+def alarm_mode(countdown, bz):
     """
     Waits out the remaining amount of time until actual wakeup time, then sets the alarm_state in the database to 1.
     Then sounds the alarm while alarm_state in the database is still 1.
     :param countdown: The remaining time until actual wakeup time, in minutes.
     :type countdown: int
+    :param bz: The buzzer.
+    :type bz: gpiozero.Buzzer
     :return: None
     """
     # Wait until actual wakeup time
@@ -580,32 +589,19 @@ def alarm_mode(countdown):
     set_alarm_state(1)
     while get_alarm_state() == 1:
         print("Still not awake...")
-        buzzer(1)
+        bz.on()
         time.sleep(1)
-        buzzer(0)
+        bz.off()
         time.sleep(1)
 
     print("User is awake!")
 
     # Make sure the buzzer turns off
     set_alarm_state(0)
-    buzzer(0)
+    bz.off()
 
     # Deactivate active_state
     set_active_state(0)
-
-
-def buzzer(state):
-    """
-    Turns the buzzer either on or off.
-    :param state: The requested new state of the buzzer (1 is on, 0 is off).
-    :type state: int
-    :return: None
-    """
-    if state == 1:
-        print("Alarm goes BEEP!")
-    else:
-        print("Alarm goes silent.")
 
 
 if __name__ == '__main__':
