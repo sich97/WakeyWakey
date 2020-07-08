@@ -16,6 +16,8 @@ DATABASE_PATH = "server/db"
 SECONDS_IN_A_DAY = 86400
 MAIN_LOOP_DELAY_SECONDS = 5
 BUZZER_PIN = 3
+SOUND_LOOPS = 1000
+SOUND_DELAY = 0.001
 
 
 def main():
@@ -589,9 +591,7 @@ def alarm_mode(countdown, bz):
     set_alarm_state(1)
     while get_alarm_state() == 1:
         print("Still not awake...")
-        bz.on()
-        time.sleep(1)
-        bz.off()
+        play_sound(SOUND_LOOPS, SOUND_DELAY, bz)
         time.sleep(1)
 
     print("User is awake!")
@@ -602,6 +602,14 @@ def alarm_mode(countdown, bz):
 
     # Deactivate active_state
     set_active_state(0)
+
+
+def play_sound(loops, delay, bz):
+    for i in range(loops):
+        bz.on()
+        time.sleep(delay)
+        bz.off()
+        time.sleep(delay)
 
 
 if __name__ == '__main__':
