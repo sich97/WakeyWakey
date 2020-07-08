@@ -14,11 +14,13 @@ import tkinter
 import random
 import numpy as np
 import pyautogui
+import sys
 
 SETTINGS_PATH = "client/settings.ini"
 MIN_LINE_LENGTH = 5
 LINE_THICKNESS = 8
 BORDER_MARGIN = 10
+WINDOW_TITLE_MARGIN = 33
 
 
 def main():
@@ -31,9 +33,6 @@ def main():
     # Initialization
     server_address, server_port, window_height, window_width, alarm_state = initialize()
 
-    # Client dev
-    alarm_state = 1
-
     # If the alarm is on
     if alarm_state == 1:
 
@@ -43,11 +42,15 @@ def main():
         # After having completed the awoke_test properly, stop the alarm
         set_alarm_state(server_address, server_port, 0)
 
+        sys.exit()
+
     # If the server is not in alarm mode
     elif alarm_state == 0:
 
         # Go into management mode
         management(server_address, server_port)
+
+        sys.exit()
 
 
 """
@@ -139,18 +142,17 @@ def awake_test(window_height, window_width):
     window, canvas = create_awake_test_gui(window_height, window_width)
 
     # Create test
-    start, end_block = create_test(canvas)
+    start, east_lines, west_lines, south_lines, north_lines = create_test(canvas)
 
     # Run tests
     awake = tkinter.BooleanVar(canvas, False, "awake")
     while not awake.get():
-        awake.set(run_test(canvas, start, end_block))
+        awake.set(run_test(canvas, start))
 
     print("Congratulations. You passed the test!")
-    input()
 
 
-def run_test(canvas, start, end_block):
+def run_test(canvas, start):
     # Place mouse pointer over start_block
     pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
 
@@ -160,20 +162,48 @@ def run_test(canvas, start, end_block):
 
         # Check mouse position
         mouse_x, mouse_y = pyautogui.position()
+        mouse_y -= WINDOW_TITLE_MARGIN
 
-        # Check if overlap
-        if len(canvas.find_overlapping(mouse_x, mouse_y, mouse_x, mouse_y)) < 1:
+        # Check pixel color
+        current_pixel_color = get_pixel_color(canvas, mouse_x, mouse_y)
+
+        if current_pixel_color == "WHITE":
             # Touching wall
             print("You have touched the wall! Moving you back to start.")
-            pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
+            pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + WINDOW_TITLE_MARGIN + LINE_THICKNESS // 2)
             time.sleep(0.1)
-            pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
 
         # Check if in goal
-        elif end_block in canvas.find_overlapping(mouse_x, mouse_y, mouse_x, mouse_y):
+        elif current_pixel_color == "RED":
+            # Reached goal
+            print("You have reached the goal!")
             success = True
 
+        else:
+            time.sleep(0.1)
+
     return success
+
+
+def get_pixel_color(canvas, x, y):
+    ids = canvas.find_overlapping(x, y, x, y)
+    colors = []
+
+    if len(ids) > 0:
+        for index in ids:
+            color = canvas.itemcget(index, "fill")
+            color = color.upper()
+            if color != '':
+                colors.append(color)
+
+    if "RED" in colors:
+        return "RED"
+    elif "GREEN" in colors:
+        return "GREEN"
+    elif "BLACK" in colors:
+        return "BLACK"
+    else:
+        return "WHITE"
 
 
 def create_test(canvas):
@@ -181,7 +211,8 @@ def create_test(canvas):
     Fills the canvas with a graphical test, and a success condition.
     :param canvas: The GUI in which the test is drawn onto.
     :type canvas: tkinter.Canvas
-    :return: start (np.array), end_block (tkinter.create_rectangle)
+    :return: east_lines (list of tkinter.Canvas.create_rectangle), west_lines (list of tkinter.Canvas.create_rectangle),
+    south_lines (list of tkinter.Canvas.create_rectangle), north_lines (list of tkinter.Canvas.create_rectangle)
     """
     # Choose which side the mouse pointer shall start on (Left: 1, Top: 2)
     start_side = random.randint(1, 2)
@@ -212,41 +243,82 @@ def create_test(canvas):
 
     print(f"Start: {start}, end: {end}.")
 
-    horizontal_lines = []
-    vertical_lines = []
+    east_lines = []
+    west_lines = []
+    south_lines = []
+    north_lines = []
 
     # Create start line
     line_end, previous_direction, path_complete = draw_line(start, end, size, canvas, end_block,
-                                                            [0, 0], horizontal_lines, vertical_lines)
+                                                            [0, 0], east_lines, west_lines, south_lines, north_lines)
     canvas.update()
 
     while not path_complete:
         line_end, previous_direction, path_complete = draw_line(line_end, end, size, canvas, end_block,
-                                                                previous_direction, horizontal_lines, vertical_lines)
+                                                                previous_direction, east_lines, west_lines,
+                                                                south_lines, north_lines)
         canvas.update()
 
-    for line in horizontal_lines:
+    east_lines, west_lines, south_lines, north_lines = increase_line_thickness(canvas, east_lines, west_lines,
+                                                                               south_lines, north_lines,
+                                                                               LINE_THICKNESS)
+
+    return start, east_lines, west_lines, south_lines, north_lines
+
+
+def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_lines, increase_factor):
+    new_east_lines = []
+    for line in east_lines:
         x0, y0, x1, y1 = canvas.coords(line)
-        y1 += LINE_THICKNESS - 1
+        y1 += increase_factor
+        x1 += increase_factor
+
         canvas.delete(line)
-        canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black")
+        new_east_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
 
-    horizontal_lines.clear()
+    east_lines.clear()
 
-    for line in vertical_lines:
+    new_west_lines = []
+    for line in west_lines:
         x0, y0, x1, y1 = canvas.coords(line)
-        x1 += LINE_THICKNESS - 1
-        canvas.delete(line)
-        canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black")
+        y1 += increase_factor
+        x1 += increase_factor
 
-    vertical_lines.clear()
+        canvas.delete(line)
+        new_west_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
+
+    west_lines.clear()
+
+    new_south_lines = []
+    for line in south_lines:
+        x0, y0, x1, y1 = canvas.coords(line)
+        y1 += increase_factor
+        x1 += increase_factor
+
+
+        canvas.delete(line)
+        new_south_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
+
+    south_lines.clear()
+
+    new_north_lines = []
+    for line in north_lines:
+        x0, y0, x1, y1 = canvas.coords(line)
+        y1 += increase_factor
+        x1 += increase_factor
+
+        canvas.delete(line)
+        new_north_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
+
+    north_lines.clear()
 
     canvas.update()
 
-    return start, end_block
+    return new_east_lines, new_west_lines, new_south_lines, new_north_lines
 
 
-def draw_line(start, end, size, canvas, end_block, previous_direction, horizontal_lines, vertical_lines):
+def draw_line(start, end, size, canvas, end_block, previous_direction,
+              east_lines, west_lines, south_lines, north_lines):
     print(f"\nDraw line from {start} to {end}.")
 
     # Get direction
@@ -268,11 +340,17 @@ def draw_line(start, end, size, canvas, end_block, previous_direction, horizonta
     print(f"Line end: {line_end}.")
 
     # Draw line
-    if direction[0] == 1 or direction[0] == -1:
-        horizontal_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
+    if direction[0] == 1:
+        east_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
                                                         fill="black", outline="black"))
-    elif direction[1] == 1 or direction[1] == -1:
-        vertical_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
+    elif direction[0] == -1:
+        west_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
+                                                        fill="black", outline="black"))
+    elif direction[1] == 1:
+        south_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
+                                                      fill="black", outline="black"))
+    elif direction[1] == -1:
+        north_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
                                                       fill="black", outline="black"))
 
     # Check if the new line overlaps the goal
