@@ -10,7 +10,7 @@ import multiprocessing
 import socket
 import arrow
 import time
-from gpiozero import Buzzer
+import gpiozero
 
 DATABASE_PATH = "server/db"
 SECONDS_IN_A_DAY = 86400
@@ -18,6 +18,7 @@ MAIN_LOOP_DELAY_SECONDS = 5
 BUZZER_PIN = 27
 SOUND_LOOPS = 1000
 SOUND_DELAY = 0.001
+PWM_PIN = 27
 
 
 def main():
@@ -30,7 +31,7 @@ def main():
     :return: None
     """
     # Initialization
-    bz = initialize()
+    buzzer = initialize()
 
     # Main loop
     while True:
@@ -47,7 +48,7 @@ def main():
             if seconds_left <= get_wakeup_window() * 60:
                 print("Entered wakeup window.")
                 # Go into alarm mode
-                alarm_mode(seconds_left, bz)
+                alarm_mode(seconds_left, buzzer)
 
 
 """
@@ -60,10 +61,10 @@ def main():
 def initialize():
     """
     Loads settings and sets up TCP communication.
-    :return: bz (gpiozero.Buzzer)
+    :return: buzzer (gpiozero.PWMOutputDevice)
     """
-    # Instantiate buzzer
-    bz = Buzzer(BUZZER_PIN)
+    # Instantiate PWM pin
+    buzzer = gpiozero.PWMOutputDevice(PWM_PIN)
 
     # Load settings
     bind_address, bind_port, wakeup_time_hour, wakeup_time_minute, utc_offset = load_settings("all")
@@ -76,7 +77,7 @@ def initialize():
     management_process = multiprocessing.Process(target=communication, args=(s,))
     management_process.start()
 
-    return bz
+    return buzzer
 
 
 def load_settings(degree):
@@ -577,8 +578,8 @@ def alarm_mode(countdown, bz):
     Then sounds the alarm while alarm_state in the database is still 1.
     :param countdown: The remaining time until actual wakeup time, in minutes.
     :type countdown: int
-    :param bz: The buzzer.
-    :type bz: gpiozero.Buzzer
+    :param bz: The PWM pin for the buzzer
+    :type bz: gpiozero.PWMOutputDevice
     :return: None
     """
     # Wait until actual wakeup time
@@ -606,10 +607,10 @@ def alarm_mode(countdown, bz):
 
 def play_sound(loops, delay, bz):
     for i in range(loops):
-        bz.on()
+        bz.value = 0.01
         time.sleep(delay)
         bz.off()
-        time.sleep(delay)
+        bz.value = 0.00
 
 
 if __name__ == '__main__':
