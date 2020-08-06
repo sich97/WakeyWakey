@@ -63,6 +63,10 @@ def initialize():
     Loads settings and sets up TCP communication.
     :return: buzzer (gpiozero.PWMOutputDevice)
     """
+    # Reset states
+    set_active_state(0)
+    set_alarm_state(0)
+
     # Instantiate PWM pin
     buzzer = gpiozero.PWMOutputDevice(PWM_PIN)
 
