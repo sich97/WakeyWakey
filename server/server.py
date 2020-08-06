@@ -15,10 +15,10 @@ import gpiozero
 DATABASE_PATH = "server/db"
 SECONDS_IN_A_DAY = 86400
 MAIN_LOOP_DELAY_SECONDS = 5
-BUZZER_PIN = 27
+BUZZER_PIN_1 = 17
+BUZZER_PIN_2 = 22
 SOUND_LOOPS = 1000
 SOUND_DELAY = 0.001
-PWM_PIN = 27
 
 
 def main():
@@ -31,7 +31,7 @@ def main():
     :return: None
     """
     # Initialization
-    buzzer = initialize()
+    buzzer1, buzzer2 = initialize()
 
     # Main loop
     while True:
@@ -48,7 +48,7 @@ def main():
             if seconds_left <= get_wakeup_window() * 60:
                 print("Entered wakeup window.")
                 # Go into alarm mode
-                alarm_mode(seconds_left, buzzer)
+                alarm_mode(seconds_left, buzzer1, buzzer2)
 
 
 """
@@ -61,14 +61,15 @@ def main():
 def initialize():
     """
     Loads settings and sets up TCP communication.
-    :return: buzzer (gpiozero.PWMOutputDevice)
+    :return: buzzer1 (gpiozero.Buzzer), buzzer2 (gpiozero.Buzzer)
     """
     # Reset states
     set_active_state(0)
     set_alarm_state(0)
 
-    # Instantiate PWM pin
-    buzzer = gpiozero.PWMOutputDevice(PWM_PIN)
+    # Instantiate buzzers
+    buzzer1 = gpiozero.Buzzer(BUZZER_PIN_1)
+    buzzer2 = gpiozero.Buzzer(BUZZER_PIN_2)
 
     # Load settings
     bind_address, bind_port, wakeup_time_hour, wakeup_time_minute, utc_offset = load_settings("all")
@@ -81,7 +82,7 @@ def initialize():
     management_process = multiprocessing.Process(target=communication, args=(s,))
     management_process.start()
 
-    return buzzer
+    return buzzer1, buzzer2
 
 
 def load_settings(degree):
@@ -576,14 +577,16 @@ def get_local_time(utc_offset):
 """
 
 
-def alarm_mode(countdown, bz):
+def alarm_mode(countdown, buzzer1, buzzer2):
     """
     Waits out the remaining amount of time until actual wakeup time, then sets the alarm_state in the database to 1.
     Then sounds the alarm while alarm_state in the database is still 1.
     :param countdown: The remaining time until actual wakeup time, in minutes.
     :type countdown: int
-    :param bz: The PWM pin for the buzzer
-    :type bz: gpiozero.PWMOutputDevice
+    :param buzzer1: The pin for the buzzer
+    :type buzzer1: gpiozero.Buzzer
+    :param buzzer2: The pin for the buzzer
+    :type buzzer2: gpiozero.Buzzer
     :return: None
     """
     # Wait until actual wakeup time
@@ -596,25 +599,40 @@ def alarm_mode(countdown, bz):
     set_alarm_state(1)
     while get_alarm_state() == 1:
         print("Still not awake...")
-        play_sound(SOUND_LOOPS, SOUND_DELAY, bz)
+        play_sound(SOUND_LOOPS, SOUND_DELAY, buzzer1, buzzer2)
         time.sleep(1)
 
     print("User is awake!")
 
-    # Make sure the buzzer turns off
+    # Make sure the buzzers turns off
     set_alarm_state(0)
-    bz.off()
+    buzzer1.off()
+    buzzer2.off()
 
     # Deactivate active_state
     set_active_state(0)
 
 
-def play_sound(loops, delay, bz):
-    for i in range(loops):
-        bz.value = 0.01
+def play_sound(cycles, delay, buzzer1, buzzer2):
+    """
+    Powers the buzzers in a controlled pattern to create sound for wakeup.
+    :param cycles: The amount of times the buzzer should switch on and off.
+    :type cycles: int
+    :param delay: The amount of seconds between each cycle.
+    :type delay: float
+    :param buzzer1: Pin 1 for the buzzer.
+    :type buzzer1: gpiozero.Buzzer
+    :param buzzer2: Pin 2 for the buzzer.
+    :type buzzer2: gpiozero.Buzzer
+    :return:
+    """
+    for i in range(cycles):
+        buzzer1.on()
+        buzzer2.off()
         time.sleep(delay)
-        bz.off()
-        bz.value = 0.00
+        buzzer1.off()
+        buzzer2.on()
+        time.sleep(delay)
 
 
 if __name__ == '__main__':
