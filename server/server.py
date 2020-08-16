@@ -16,8 +16,7 @@ DATABASE_PATH = "server/db"
 SECONDS_IN_A_DAY = 86400
 MAIN_LOOP_DELAY_SECONDS = 5
 BUZZER_PIN = 17
-SOUND_LOOPS = 1000
-SOUND_DELAY = 0.001
+SONG_LOSTWOODS = ["A3", "SILENT", "A4", "SILENT", "A5", "SILENT", "SILENT"]
 
 
 def main():
@@ -595,8 +594,11 @@ def alarm_mode(countdown, buzzer):
     set_alarm_state(1)
     while get_alarm_state() == 1:
         print("Still not awake...")
-        play_sound(SOUND_LOOPS, SOUND_DELAY, buzzer)
-        time.sleep(1)
+        for note in SONG_LOSTWOODS:
+            if note != "SILENT":
+                buzzer.play(note)
+            time.sleep(0.2)
+            buzzer.stop()
 
     print("User is awake!")
 
@@ -606,24 +608,6 @@ def alarm_mode(countdown, buzzer):
 
     # Deactivate active_state
     set_active_state(0)
-
-
-def play_sound(cycles, delay, buzzer):
-    """
-    Powers the buzzers in a controlled pattern to create sound for wakeup.
-    :param cycles: The amount of times the buzzer should switch on and off.
-    :type cycles: int
-    :param delay: The amount of seconds between each cycle.
-    :type delay: float
-    :param buzzer: Pin 1 for the buzzer.
-    :type buzzer: gpiozero.TonalBuzzer
-    :return:
-    """
-    for i in range(cycles):
-        buzzer.play("A4")
-        time.sleep(delay)
-        buzzer.stop()
-        time.sleep(delay)
 
 
 if __name__ == '__main__':
