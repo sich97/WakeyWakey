@@ -437,6 +437,7 @@ def create_awake_test_gui(window_height, window_width):
 
     # Creating the main window
     window = tkinter.Tk()
+    window.geometry(str(window_width) + "x" + str(window_height) + "+0+0")
     window.minsize(height=window_height, width=window_width)
     window.title("Wakey Wakey - Awake test")
 
