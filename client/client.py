@@ -83,14 +83,10 @@ def load_settings():
     config = configparser.ConfigParser()
     config.read(SETTINGS_PATH)
     config.sections()
-    # server_address = config['SERVER']['Address']
-    server_address = "192.168.1.20"
-    # server_port = config['SERVER']['Port']
-    server_port = 49500
-    # window_height = int(config['CLIENT']['Window height'])
-    window_height = 800
-    # window_width = int(config['CLIENT']['Window width'])
-    window_width = 600
+    server_address = config['SERVER']['Address']
+    server_port = config['SERVER']['Port']
+    window_height = int(config['CLIENT']['Window height'])
+    window_width = int(config['CLIENT']['Window width'])
 
     return server_address, server_port, window_height, window_width
 
