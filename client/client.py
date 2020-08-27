@@ -155,8 +155,6 @@ def awake_test(window_height, window_width):
 def run_test(canvas, start):
     """
     Runs the awake test.
-    :param window: The toplevel window which holds the GUI.
-    :type window: tkinter.TK
     :param canvas: The GUI in which the test is drawn onto.
     :type canvas: tkinter.Canvas
     :param start: The coordinates of the start position of the challenge.
