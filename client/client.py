@@ -490,25 +490,40 @@ def get_alarm_state(server_address, server_port):
     :type server_port: str
     :return: alarm_state (int)
     """
+    connection = server_connection(server_address, server_port)
+
+    # Request alarm state
+    command = "get_alarm_state"
+    connection.send(bytes(command, "utf-8"))
+
+    # Receive and decode response
+    msg = connection.recv(1024)
+    msg_decoded = msg.decode("utf-8")
+    alarm_state = int(msg_decoded)
+
+    # Close connection
+    connection.close()
+
+    return alarm_state
+
+
+def server_connection(server_address, server_port):
+    """
+    Creates a server connection and returns the socket.
+    :param server_address: The IP address of the server.
+    :type server_address: str
+    :param server_port: The port number of the server.
+    :type server_port: str
+    :return: s (socket.socket)
+    """
     # Create an INET streaming socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Connect to the server
     s.connect((server_address, int(server_port)))
 
-    # Request alarm state
-    command = "get_alarm_state"
-    s.send(bytes(command, "utf-8"))
-
-    # Receive and decode response
-    msg = s.recv(1024)
-    msg_decoded = msg.decode("utf-8")
-    alarm_state = int(msg_decoded)
-
-    # Close connection
-    s.close()
-
-    return alarm_state
+    # Return the socket
+    return s
 
 
 def set_alarm_state(server_address, server_port, new_alarm_state):
@@ -531,25 +546,6 @@ def set_alarm_state(server_address, server_port, new_alarm_state):
 
     # Close connection
     connection.close()
-
-
-def server_connection(server_address, server_port):
-    """
-    Creates a server connection and returns the socket.
-    :param server_address: The IP address of the server.
-    :type server_address: str
-    :param server_port: The port number of the server.
-    :type server_port: str
-    :return: s (socket.socket)
-    """
-    # Create an INET streaming socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the server
-    s.connect((server_address, int(server_port)))
-
-    # Return the socket
-    return s
 
 
 def management(server_address, server_port):
