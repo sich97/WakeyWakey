@@ -91,36 +91,6 @@ def load_settings():
     return server_address, server_port, window_height, window_width
 
 
-def get_alarm_state(server_address, server_port):
-    """
-    Returns the value of alarm_state, which is stored in the database on the server.
-    :param server_address: The IP address of the server.
-    :type server_address: str
-    :param server_port: The port number of the server.
-    :type server_port: str
-    :return: server_state (int)
-    """
-    # Create an INET streaming socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the server
-    s.connect((server_address, int(server_port)))
-
-    # Request alarm state
-    command = "get_alarm_state"
-    s.send(bytes(command, "utf-8"))
-
-    # Receive and decode response
-    msg = s.recv(1024)
-    msg_decoded = msg.decode("utf-8")
-    alarm_state = int(msg_decoded)
-
-    # Close connection
-    s.close()
-
-    return alarm_state
-
-
 """
 ########################################################################################################################
                                                         AWAKE TEST
@@ -152,76 +122,35 @@ def awake_test(window_height, window_width):
     print("Congratulations. You passed the test!")
 
 
-def run_test(canvas, start):
+def create_awake_test_gui(window_height, window_width):
     """
-    Runs the awake test.
-    :param canvas: The GUI in which the test is drawn onto.
-    :type canvas: tkinter.Canvas
-    :param start: The coordinates of the start position of the challenge.
-    :type start: np.array
-    :return: success (boolean)
+    Creates the GUI
+    :param window_height: How many pixels high the GUI should be.
+    :type window_height: int
+    :param window_width: How many pixels wide the GUI should be.
+    :type window_width: int
+    :return: window (tkinter.Tk), canvas (tkinter.Canvas)
     """
-    # Place mouse pointer over start_block
-    pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
+    # Sets minimum window height
+    if window_height < 36:
+        window_height = 36
+    # Sets minimum window width
+    if window_width < 36:
+        window_width = 36
 
-    success = False
-    while not success:
-        canvas.update()
+    # Creating the main window
+    window = tkinter.Tk()
+    window.geometry(str(window_width) + "x" + str(window_height) + "+0+0")
+    window.minsize(height=window_height, width=window_width)
+    window.title("Wakey Wakey - Awake test")
 
-        # Check mouse position
-        mouse_x, mouse_y = pyautogui.position()
-        mouse_y -= WINDOW_TITLE_MARGIN
+    # The canvas that the cells are drawn onto
+    canvas = tkinter.Canvas(window, height=window_height, width=window_width, bg="white")
 
-        # Check pixel color
-        current_pixel_color = get_pixel_color(canvas, mouse_x, mouse_y)
+    canvas.grid(row=0, column=0)
+    canvas.update()
 
-        if current_pixel_color == "WHITE":
-            # Touching wall
-            print("You have touched the wall! Moving you back to start.")
-            pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + WINDOW_TITLE_MARGIN + LINE_THICKNESS // 2)
-            time.sleep(0.1)
-
-        # Check if in goal
-        elif current_pixel_color == "RED":
-            # Reached goal
-            print("You have reached the goal!")
-            success = True
-
-        else:
-            time.sleep(0.1)
-
-    return success
-
-
-def get_pixel_color(canvas, x, y):
-    """
-    Gets the pixel color of a certain pixel in a canvas.
-    :param canvas: The canvas in question.
-    :type canvas: tkinter.Canvas
-    :param x: The x coordinate of the pixel to check.
-    :type x: int
-    :param y: The y coordinate of the pixel to check.
-    :type y: int
-    :return: string
-    """
-    ids = canvas.find_overlapping(x, y, x, y)
-    colors = []
-
-    if len(ids) > 0:
-        for index in ids:
-            color = canvas.itemcget(index, "fill")
-            color = color.upper()
-            if color != '':
-                colors.append(color)
-
-    if "RED" in colors:
-        return "RED"
-    elif "GREEN" in colors:
-        return "GREEN"
-    elif "BLACK" in colors:
-        return "BLACK"
-    else:
-        return "WHITE"
+    return window, canvas
 
 
 def create_test(canvas):
@@ -282,57 +211,6 @@ def create_test(canvas):
                                                                                LINE_THICKNESS)
 
     return start, east_lines, west_lines, south_lines, north_lines
-
-
-def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_lines, increase_factor):
-    new_east_lines = []
-    for line in east_lines:
-        x0, y0, x1, y1 = canvas.coords(line)
-        y1 += increase_factor
-        x1 += increase_factor
-
-        canvas.delete(line)
-        new_east_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
-
-    east_lines.clear()
-
-    new_west_lines = []
-    for line in west_lines:
-        x0, y0, x1, y1 = canvas.coords(line)
-        y1 += increase_factor
-        x1 += increase_factor
-
-        canvas.delete(line)
-        new_west_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
-
-    west_lines.clear()
-
-    new_south_lines = []
-    for line in south_lines:
-        x0, y0, x1, y1 = canvas.coords(line)
-        y1 += increase_factor
-        x1 += increase_factor
-
-
-        canvas.delete(line)
-        new_south_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
-
-    south_lines.clear()
-
-    new_north_lines = []
-    for line in north_lines:
-        x0, y0, x1, y1 = canvas.coords(line)
-        y1 += increase_factor
-        x1 += increase_factor
-
-        canvas.delete(line)
-        new_north_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
-
-    north_lines.clear()
-
-    canvas.update()
-
-    return new_east_lines, new_west_lines, new_south_lines, new_north_lines
 
 
 def draw_line(start, end, size, canvas, end_block, previous_direction,
@@ -417,35 +295,127 @@ def determine_direction(source, destination, previous_direction):
     return direction
 
 
-def create_awake_test_gui(window_height, window_width):
-    """
-    Creates the GUI
-    :param window_height: How many pixels high the GUI should be.
-    :type window_height: int
-    :param window_width: How many pixels wide the GUI should be.
-    :type window_width: int
-    :return: window (tkinter.Tk), canvas (tkinter.Canvas)
-    """
-    # Sets minimum window height
-    if window_height < 36:
-        window_height = 36
-    # Sets minimum window width
-    if window_width < 36:
-        window_width = 36
+def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_lines, increase_factor):
+    new_east_lines = []
+    for line in east_lines:
+        x0, y0, x1, y1 = canvas.coords(line)
+        y1 += increase_factor
+        x1 += increase_factor
 
-    # Creating the main window
-    window = tkinter.Tk()
-    window.geometry(str(window_width) + "x" + str(window_height) + "+0+0")
-    window.minsize(height=window_height, width=window_width)
-    window.title("Wakey Wakey - Awake test")
+        canvas.delete(line)
+        new_east_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
 
-    # The canvas that the cells are drawn onto
-    canvas = tkinter.Canvas(window, height=window_height, width=window_width, bg="white")
+    east_lines.clear()
 
-    canvas.grid(row=0, column=0)
+    new_west_lines = []
+    for line in west_lines:
+        x0, y0, x1, y1 = canvas.coords(line)
+        y1 += increase_factor
+        x1 += increase_factor
+
+        canvas.delete(line)
+        new_west_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
+
+    west_lines.clear()
+
+    new_south_lines = []
+    for line in south_lines:
+        x0, y0, x1, y1 = canvas.coords(line)
+        y1 += increase_factor
+        x1 += increase_factor
+
+
+        canvas.delete(line)
+        new_south_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
+
+    south_lines.clear()
+
+    new_north_lines = []
+    for line in north_lines:
+        x0, y0, x1, y1 = canvas.coords(line)
+        y1 += increase_factor
+        x1 += increase_factor
+
+        canvas.delete(line)
+        new_north_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
+
+    north_lines.clear()
+
     canvas.update()
 
-    return window, canvas
+    return new_east_lines, new_west_lines, new_south_lines, new_north_lines
+
+
+def run_test(canvas, start):
+    """
+    Runs the awake test.
+    :param canvas: The GUI in which the test is drawn onto.
+    :type canvas: tkinter.Canvas
+    :param start: The coordinates of the start position of the challenge.
+    :type start: np.array
+    :return: success (boolean)
+    """
+    # Place mouse pointer over start_block
+    pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
+
+    success = False
+    while not success:
+        canvas.update()
+
+        # Check mouse position
+        mouse_x, mouse_y = pyautogui.position()
+        mouse_y -= WINDOW_TITLE_MARGIN
+
+        # Check pixel color
+        current_pixel_color = get_pixel_color(canvas, mouse_x, mouse_y)
+
+        if current_pixel_color == "WHITE":
+            # Touching wall
+            print("You have touched the wall! Moving you back to start.")
+            pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + WINDOW_TITLE_MARGIN + LINE_THICKNESS // 2)
+            time.sleep(0.1)
+
+        # Check if in goal
+        elif current_pixel_color == "RED":
+            # Reached goal
+            print("You have reached the goal!")
+            success = True
+
+        else:
+            time.sleep(0.1)
+
+    return success
+
+
+def get_pixel_color(canvas, x, y):
+    """
+    Gets the pixel color of a certain pixel in a canvas.
+    :param canvas: The canvas in question.
+    :type canvas: tkinter.Canvas
+    :param x: The x coordinate of the pixel to check.
+    :type x: int
+    :param y: The y coordinate of the pixel to check.
+    :type y: int
+    :return: string
+    """
+    ids = canvas.find_overlapping(x, y, x, y)
+    colors = []
+
+    if len(ids) > 0:
+        for index in ids:
+            color = canvas.itemcget(index, "fill")
+            color = color.upper()
+            if color != '':
+                colors.append(color)
+
+    if "RED" in colors:
+        return "RED"
+    elif "GREEN" in colors:
+        return "GREEN"
+    elif "BLACK" in colors:
+        return "BLACK"
+    else:
+        return "WHITE"
 
 
 """
@@ -455,14 +425,14 @@ def create_awake_test_gui(window_height, window_width):
 """
 
 
-def server_connection(server_address, server_port):
+def get_alarm_state(server_address, server_port):
     """
-    Creates a server connection and returns the socket
+    Returns the value of alarm_state, which is stored in the database on the server.
     :param server_address: The IP address of the server.
     :type server_address: str
     :param server_port: The port number of the server.
     :type server_port: str
-    :return: s (socket.socket)
+    :return: server_state (int)
     """
     # Create an INET streaming socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -470,8 +440,19 @@ def server_connection(server_address, server_port):
     # Connect to the server
     s.connect((server_address, int(server_port)))
 
-    # Return the socket
-    return s
+    # Request alarm state
+    command = "get_alarm_state"
+    s.send(bytes(command, "utf-8"))
+
+    # Receive and decode response
+    msg = s.recv(1024)
+    msg_decoded = msg.decode("utf-8")
+    alarm_state = int(msg_decoded)
+
+    # Close connection
+    s.close()
+
+    return alarm_state
 
 
 def set_alarm_state(server_address, server_port, new_alarm_state):
@@ -496,65 +477,23 @@ def set_alarm_state(server_address, server_port, new_alarm_state):
     connection.close()
 
 
-def is_clean_input(expected_type, value):
+def server_connection(server_address, server_port):
     """
-    Tests if the given value is not empty and that it is of the expected type.
-    :param expected_type: The expected type of the given value.
-    :type: str
-    :param value: The value to test.
-    :type value: str
-    :return: is_clean (bool), reason (str)
+    Creates a server connection and returns the socket
+    :param server_address: The IP address of the server.
+    :type server_address: str
+    :param server_port: The port number of the server.
+    :type server_port: str
+    :return: s (socket.socket)
     """
-    is_clean = False
-    reason = ""
+    # Create an INET streaming socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    if expected_type == "int":
-        if value != "":
-            try:
-                test = int(value)
-                is_clean = True
-            except ValueError:
-                is_clean = False
-                reason = "ValueError"
-        else:
-            is_clean = False
-            reason = "Empty"
+    # Connect to the server
+    s.connect((server_address, int(server_port)))
 
-    return is_clean, reason
-
-
-def get_input(prompt, expected_type, speed):
-    """
-    Asks the user for input. Tests if its valid, and if not, ask again until a valid input has been entered.
-    :param prompt: The text that should be used to ask for input.
-    :type prompt: str
-    :param expected_type: The expected type of the given value.
-    :type expected_type: str
-    :param speed: How much time the program shall wait before asking the user for a new value if the previous one
-    was invalid.
-    :type speed: int
-    :type: bool
-    :return: user_input (any)
-    """
-    user_input = None
-    user_input_ok = False
-
-    while not user_input_ok:
-        print(prompt, end="")
-        user_input = input()
-        is_ok, reason = is_clean_input(expected_type, user_input)
-        if is_ok:
-            user_input_ok = True
-        else:
-            print(f"You did enter a correct value. Reason: {reason}.")
-            if speed > 0:
-                print(f"Please try again in {speed} seconds.")
-            time.sleep(speed)
-
-    if expected_type == "int":
-        user_input = int(user_input)
-
-    return user_input
+    # Return the socket
+    return s
 
 
 def management(server_address, server_port):
@@ -612,6 +551,187 @@ def management(server_address, server_port):
             change_utc_offset(server_address, server_port, new_utc_offset)
 
 
+def load_user_preferences(server_address, server_port):
+    """
+    Gets the user preferences as a dictionary from the server.
+    :param server_address: The IP address of the server.
+    :type server_address: str
+    :param server_port: The port number of the server.
+    :type server_port: str
+    :return: user_preferences (dict)
+    """
+    # Connect to server
+    connection = server_connection(server_address, server_port)
+
+    # Request user preferences
+    command = "get_user_preferences"
+    connection.send(bytes(command, "utf-8"))
+
+    # Receive and decode response
+    msg = connection.recv(1024)
+    user_preferences = msg.decode("utf-8")
+
+    # Close connection
+    connection.close()
+
+    # Convert to dictionary
+    user_preferences = ast.literal_eval(user_preferences)
+
+    return user_preferences
+
+
+def display_user_preferences(user_preferences):
+    """
+    Shows the current user preferences.
+    :param user_preferences: The current user preferences.
+    :type user_preferences: dict
+    :return: None
+    """
+    print("These are your current preferences stored on the server:")
+    print("1.\tActive:\t\t", end="")
+    if user_preferences["active_state"] == 1:
+        print("Yes")
+    else:
+        print("No")
+    print("2.\tWakeup time:\t", end="")
+    if user_preferences["wakeup_time_hour"] < 10:
+        print("0", end="")
+    print(str(user_preferences["wakeup_time_hour"]) + ":", end="")
+    if user_preferences["wakeup_time_minute"] < 10:
+        print("0", end="")
+    print(str(user_preferences["wakeup_time_minute"]))
+    print("3.\tWakeup window:\t" + str(user_preferences["wakeup_window"]) + " minutes")
+    if user_preferences["utc_offset"] > 0:
+        utc_prefix = "+"
+    else:
+        utc_prefix = ""
+    print("4.\tUTC offset:\t" + utc_prefix + str(user_preferences["utc_offset"]))
+
+
+def change_active_state(server_address, server_port, current_active_state):
+    """
+    Changes the active state to whatever it wasn't before.
+    :param server_address: The IP address of the server.
+    :type server_address: str
+    :param server_port: The port number of the server.
+    :type server_port: str
+    :param current_active_state: What the active state was before calling this function.
+    :type current_active_state: int
+    :return: None
+    """
+    if current_active_state == 0:
+        set_active_state(server_address, server_port, 1)
+    else:
+        set_active_state(server_address, server_port, 0)
+
+
+def set_active_state(server_address, server_port, new_active_state):
+    """
+    Sends a command to the server requesting the active state to be changed to the new_active_state parameter.
+    :param server_address: The IP address of the server.
+    :type server_address: str
+    :param server_port: The port number of the server.
+    :type server_port: str
+    :param new_active_state: The new active state.
+    :type new_active_state: int
+    :return: None
+    """
+    # Connect to server
+    connection = server_connection(server_address, server_port)
+
+    # Request changing alarm state
+    command = "set_active_state " + str(new_active_state)
+    connection.send(bytes(command, "utf-8"))
+
+    # Close connection
+    connection.close()
+
+
+def get_input(prompt, expected_type, speed):
+    """
+    Asks the user for input. Tests if its valid, and if not, ask again until a valid input has been entered.
+    :param prompt: The text that should be used to ask for input.
+    :type prompt: str
+    :param expected_type: The expected type of the given value.
+    :type expected_type: str
+    :param speed: How much time the program shall wait before asking the user for a new value if the previous one
+    was invalid.
+    :type speed: int
+    :type: bool
+    :return: user_input (any)
+    """
+    user_input = None
+    user_input_ok = False
+
+    while not user_input_ok:
+        print(prompt, end="")
+        user_input = input()
+        is_ok, reason = is_clean_input(expected_type, user_input)
+        if is_ok:
+            user_input_ok = True
+        else:
+            print(f"You did enter a correct value. Reason: {reason}.")
+            if speed > 0:
+                print(f"Please try again in {speed} seconds.")
+            time.sleep(speed)
+
+    if expected_type == "int":
+        user_input = int(user_input)
+
+    return user_input
+
+
+def is_clean_input(expected_type, value):
+    """
+    Tests if the given value is not empty and that it is of the expected type.
+    :param expected_type: The expected type of the given value.
+    :type: str
+    :param value: The value to test.
+    :type value: str
+    :return: is_clean (bool), reason (str)
+    """
+    is_clean = False
+    reason = ""
+
+    if expected_type == "int":
+        if value != "":
+            try:
+                test = int(value)
+                is_clean = True
+            except ValueError:
+                is_clean = False
+                reason = "ValueError"
+        else:
+            is_clean = False
+            reason = "Empty"
+
+    return is_clean, reason
+
+
+def change_wakeup_time(server_address, server_port, hour_or_minute, value):
+    """
+    Changes the given type (hours or minute) to whatever value.
+    :param server_address: The IP address of the server.
+    :type server_address: str
+    :param server_port: The port number of the server.
+    :type server_port: str
+    :param hour_or_minute: Either 'hour' or 'minute'.
+    :type hour_or_minute: str
+    :param value: The new value for the given type.
+    :type value: int
+    :return: None
+    """
+    # Connect to server
+    connection = server_connection(server_address, server_port)
+
+    # Request changing alarm state
+    command = "set_wakeup_" + hour_or_minute + " " + str(value)
+    connection.send(bytes(command, "utf-8"))
+
+    # Close connection
+    connection.close()
+
+
 def change_wakeup_window(server_address, server_port, new_wakeup_window):
     """
     Sends a command to the server requesting the wakeup window to be changed to the new_wakeup_window parameter.
@@ -654,126 +774,6 @@ def change_utc_offset(server_address, server_port, new_utc_offset):
 
     # Close connection
     connection.close()
-
-
-def change_wakeup_time(server_address, server_port, hour_or_minute, value):
-    """
-    Changes the given type (hours or minute) to whatever value.
-    :param server_address: The IP address of the server.
-    :type server_address: str
-    :param server_port: The port number of the server.
-    :type server_port: str
-    :param hour_or_minute: Either 'hour' or 'minute'.
-    :type hour_or_minute: str
-    :param value: The new value for the given type.
-    :type value: int
-    :return: None
-    """
-    # Connect to server
-    connection = server_connection(server_address, server_port)
-
-    # Request changing alarm state
-    command = "set_wakeup_" + hour_or_minute + " " + str(value)
-    connection.send(bytes(command, "utf-8"))
-
-    # Close connection
-    connection.close()
-
-
-def change_active_state(server_address, server_port, current_active_state):
-    """
-    Changes the active state to whatever it wasn't before.
-    :param server_address: The IP address of the server.
-    :type server_address: str
-    :param server_port: The port number of the server.
-    :type server_port: str
-    :param current_active_state: What the active state was before calling this function.
-    :type current_active_state: int
-    :return: None
-    """
-    if current_active_state == 0:
-        set_active_state(server_address, server_port, 1)
-    else:
-        set_active_state(server_address, server_port, 0)
-
-
-def set_active_state(server_address, server_port, new_active_state):
-    """
-    Sends a command to the server requesting the active state to be changed to the new_active_state parameter.
-    :param server_address: The IP address of the server.
-    :type server_address: str
-    :param server_port: The port number of the server.
-    :type server_port: str
-    :param new_active_state: The new active state.
-    :type new_active_state: int
-    :return: None
-    """
-    # Connect to server
-    connection = server_connection(server_address, server_port)
-
-    # Request changing alarm state
-    command = "set_active_state " + str(new_active_state)
-    connection.send(bytes(command, "utf-8"))
-
-    # Close connection
-    connection.close()
-
-
-def display_user_preferences(user_preferences):
-    """
-    Shows the current user preferences.
-    :param user_preferences: The current user preferences.
-    :type user_preferences: dict
-    :return: None
-    """
-    print("These are your current preferences stored on the server:")
-    print("1.\tActive:\t\t", end="")
-    if user_preferences["active_state"] == 1:
-        print("Yes")
-    else:
-        print("No")
-    print("2.\tWakeup time:\t", end="")
-    if user_preferences["wakeup_time_hour"] < 10:
-        print("0", end="")
-    print(str(user_preferences["wakeup_time_hour"]) + ":", end="")
-    if user_preferences["wakeup_time_minute"] < 10:
-        print("0", end="")
-    print(str(user_preferences["wakeup_time_minute"]))
-    print("3.\tWakeup window:\t" + str(user_preferences["wakeup_window"]) + " minutes")
-    if user_preferences["utc_offset"] > 0:
-        utc_prefix = "+"
-    else:
-        utc_prefix = ""
-    print("4.\tUTC offset:\t" + utc_prefix + str(user_preferences["utc_offset"]))
-
-
-def load_user_preferences(server_address, server_port):
-    """
-    Gets the user preferences as a dictionary from the server.
-    :param server_address: The IP address of the server.
-    :type server_address: str
-    :param server_port: The port number of the server.
-    :type server_port: str
-    :return: user_preferences (dict)
-    """
-    # Connect to server
-    connection = server_connection(server_address, server_port)
-
-    # Request user preferences
-    command = "get_user_preferences"
-    connection.send(bytes(command, "utf-8"))
-
-    # Receive and decode response
-    msg = connection.recv(1024)
-    user_preferences = msg.decode("utf-8")
-
-    # Close connection
-    connection.close()
-
-    # Convert to dictionary
-    user_preferences = ast.literal_eval(user_preferences)
-
-    return user_preferences
 
 
 if __name__ == '__main__':
