@@ -259,16 +259,16 @@ def draw_line(start, end, size, canvas, end_block, previous_direction,
     # Draw line in the determined direction
     if direction[0] == 1:
         east_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
-                                                  fill="black", outline="black"))
+                                                  fill="black"))
     elif direction[0] == -1:
         west_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
-                                                  fill="black", outline="black"))
+                                                  fill="black"))
     elif direction[1] == 1:
         south_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
-                                                   fill="black", outline="black"))
+                                                   fill="black"))
     elif direction[1] == -1:
         north_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
-                                                   fill="black", outline="black"))
+                                                   fill="black"))
 
     # Check if the new line overlaps the goal
     if end_block in canvas.find_overlapping(start[0], start[1], line_end[0], line_end[1]):
@@ -348,7 +348,7 @@ def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_l
         x1 += increase_factor
 
         canvas.delete(line)
-        new_east_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
+        new_east_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black"))
 
     # Clear the old list of the thinner lines going in this direction
     east_lines.clear()
@@ -360,7 +360,7 @@ def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_l
         x1 += increase_factor
 
         canvas.delete(line)
-        new_west_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
+        new_west_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black"))
 
     # Clear the old list of the thinner lines going in this direction
     west_lines.clear()
@@ -372,7 +372,7 @@ def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_l
         x1 += increase_factor
 
         canvas.delete(line)
-        new_south_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
+        new_south_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black"))
 
     # Clear the old list of the thinner lines going in this direction
     south_lines.clear()
@@ -384,7 +384,7 @@ def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_l
         x1 += increase_factor
 
         canvas.delete(line)
-        new_north_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
+        new_north_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black"))
 
     # Clear the old list of the thinner lines going in this direction
     north_lines.clear()
