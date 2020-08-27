@@ -187,6 +187,7 @@ def create_test(canvas):
         end_block = canvas.create_rectangle(end[0], end[1], end[0] + LINE_THICKNESS * 2, end[1] - LINE_THICKNESS * 2,
                                             fill="red", outline="red")
 
+    # Instantiate list for referencing lines by their direction
     east_lines = []
     west_lines = []
     south_lines = []
@@ -197,12 +198,15 @@ def create_test(canvas):
                                                             [0, 0], east_lines, west_lines, south_lines, north_lines)
     canvas.update()
 
+    # While the previous line doesn't touch the goal
     while not path_complete:
+        # Draw a new line
         line_end, previous_direction, path_complete = draw_line(line_end, end, size, canvas, end_block,
                                                                 previous_direction, east_lines, west_lines,
                                                                 south_lines, north_lines)
         canvas.update()
 
+    # After the path is complete, increase the thickness of all the lines
     east_lines, west_lines, south_lines, north_lines = increase_line_thickness(canvas, east_lines, west_lines,
                                                                                south_lines, north_lines,
                                                                                LINE_THICKNESS)
@@ -252,7 +256,7 @@ def draw_line(start, end, size, canvas, end_block, previous_direction,
     if line_end[1] > size[1] or line_end[1] < BORDER_MARGIN:
         line_end[1] = size[1]
 
-    # Draw line
+    # Draw line in the determined direction
     if direction[0] == 1:
         east_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
                                                         fill="black", outline="black"))
@@ -271,6 +275,7 @@ def draw_line(start, end, size, canvas, end_block, previous_direction,
         covers_goal = True
     else:
         covers_goal = False
+
     return line_end, direction, covers_goal
 
 
@@ -300,10 +305,12 @@ def determine_direction(source, destination, previous_direction):
         else:
             direction = np.array([0, -1])
 
-    previous_opposite_direction = previous_direction
-    previous_opposite_direction = previous_opposite_direction[previous_opposite_direction != 0] * -1
+    # Get the opposite direction of the previous one
+    opposite_of_previous_direction = previous_direction
+    opposite_of_previous_direction = opposite_of_previous_direction[opposite_of_previous_direction != 0] * -1
 
-    if np.array_equal(direction, previous_direction) or np.array_equal(direction, previous_opposite_direction):
+    # If the proposed new direction is perpendicular to the previous one, go south
+    if np.array_equal(direction, previous_direction) or np.array_equal(direction, opposite_of_previous_direction):
         x = direction[0]
         y = direction[1]
         direction = np.array([y, x])
@@ -328,7 +335,13 @@ def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_l
     :type increase_factor: int
     :return: new_east_lines (list), new_west_lines (list), new_south_lines (list), new_north_lines (list)
     """
+    # Instantiate the lists which will contain references to the new, thicker, lines.
     new_east_lines = []
+    new_west_lines = []
+    new_south_lines = []
+    new_north_lines = []
+
+    # Go through each line going in this direction, draw a new line which is thicker, then delete the old one
     for line in east_lines:
         x0, y0, x1, y1 = canvas.coords(line)
         y1 += increase_factor
@@ -337,9 +350,10 @@ def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_l
         canvas.delete(line)
         new_east_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
 
+    # Clear the old list of the thinner lines going in this direction
     east_lines.clear()
 
-    new_west_lines = []
+    # Go through each line going in this direction, draw a new line which is thicker, then delete the old one
     for line in west_lines:
         x0, y0, x1, y1 = canvas.coords(line)
         y1 += increase_factor
@@ -348,9 +362,10 @@ def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_l
         canvas.delete(line)
         new_west_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
 
+    # Clear the old list of the thinner lines going in this direction
     west_lines.clear()
 
-    new_south_lines = []
+    # Go through each line going in this direction, draw a new line which is thicker, then delete the old one
     for line in south_lines:
         x0, y0, x1, y1 = canvas.coords(line)
         y1 += increase_factor
@@ -360,9 +375,10 @@ def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_l
         canvas.delete(line)
         new_south_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
 
+    # Clear the old list of the thinner lines going in this direction
     south_lines.clear()
 
-    new_north_lines = []
+    # Go through each line going in this direction, draw a new line which is thicker, then delete the old one
     for line in north_lines:
         x0, y0, x1, y1 = canvas.coords(line)
         y1 += increase_factor
@@ -371,6 +387,7 @@ def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_l
         canvas.delete(line)
         new_north_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
 
+    # Clear the old list of the thinner lines going in this direction
     north_lines.clear()
 
     canvas.update()
@@ -391,6 +408,8 @@ def run_test(canvas, start):
     pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
 
     success = False
+
+    # While the mouse hasn't yet reached the goal
     while not success:
         canvas.update()
 
@@ -398,7 +417,7 @@ def run_test(canvas, start):
         mouse_x, mouse_y = pyautogui.position()
         mouse_y -= WINDOW_TITLE_MARGIN
 
-        # Check pixel color
+        # Check pixel color of mouse position
         current_pixel_color = get_pixel_color(canvas, mouse_x, mouse_y)
 
         if current_pixel_color == "WHITE":
@@ -413,6 +432,7 @@ def run_test(canvas, start):
             print("You have reached the goal!")
             success = True
 
+        # To avoid huge system load
         else:
             time.sleep(0.1)
 
@@ -430,7 +450,10 @@ def get_pixel_color(canvas, x, y):
     :type y: int
     :return: string
     """
+    # Get a list og the canvas objects overlapping the given coordinate
     ids = canvas.find_overlapping(x, y, x, y)
+
+    # Instantiate list which will contain the color of all the overlapping widgets
     colors = []
 
     if len(ids) > 0:
@@ -440,6 +463,7 @@ def get_pixel_color(canvas, x, y):
             if color != '':
                 colors.append(color)
 
+    # Returns a color in the following priority: Red, Green, Black, White
     if "RED" in colors:
         return "RED"
     elif "GREEN" in colors:
@@ -570,12 +594,14 @@ def management(server_address, server_port):
             change_wakeup_time(server_address, server_port, "hour", new_wakeup_hour)
             change_wakeup_time(server_address, server_port, "minute", new_wakeup_minute)
 
+        # If changing wakeup window
         elif preference_to_change == 3:
             print("Changing wakeup window.")
             new_wakeup_window = get_input("Please input new wakeup window (in minutes): ", "int", 0)
 
             change_wakeup_window(server_address, server_port, new_wakeup_window)
 
+        # If changing UTC offset
         elif preference_to_change == 4:
             print("Changing UTC offset.")
             new_utc_offset = get_input("Please input new UTC offset: ", "int", 0)
@@ -614,7 +640,7 @@ def load_user_preferences(server_address, server_port):
 
 def display_user_preferences(user_preferences):
     """
-    Shows the current user preferences.
+    Shows the current user preferences in a readable format.
     :param user_preferences: The current user preferences.
     :type user_preferences: dict
     :return: None
@@ -691,21 +717,30 @@ def get_input(prompt, expected_type, speed):
     :type speed: int
     :return: user_input (any)
     """
+    # Instantiate variables
     user_input = None
     user_input_ok = False
 
+    # While user input is not in the correct format (default on first attempt)
     while not user_input_ok:
+        # Prints the desired prompt, which usually describes what kind of information is requested
         print(prompt, end="")
+
+        # Stores the input and checks if it's in the correct format
         user_input = input()
         is_ok, reason = is_clean_input(expected_type, user_input)
+
         if is_ok:
+            # Breaks the loop
             user_input_ok = True
         else:
+            # Asks for another attempt
             print(f"You did enter a correct value. Reason: {reason}.")
             if speed > 0:
                 print(f"Please try again in {speed} seconds.")
             time.sleep(speed)
 
+    # If the expected input type is an integer, make sure it converts from string (user input) to integer
     if expected_type == "int":
         user_input = int(user_input)
 
@@ -721,17 +756,25 @@ def is_clean_input(expected_type, value):
     :type value: str
     :return: is_clean (bool), reason (str)
     """
+    # Instantiate variables
     is_clean = False
     reason = ""
 
+    # Checks if correct integer input
     if expected_type == "int":
+        # If not empty
         if value != "":
             try:
+                # If possible to convert to int
                 test = int(value)
                 is_clean = True
+
+                # If not possible to convert to int
             except ValueError:
                 is_clean = False
                 reason = "ValueError"
+
+        # If empty
         else:
             is_clean = False
             reason = "Empty"
