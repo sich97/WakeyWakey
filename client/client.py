@@ -153,6 +153,16 @@ def awake_test(window_height, window_width):
 
 
 def run_test(canvas, start):
+    """
+    Runs the awake test.
+    :param window: The toplevel window which holds the GUI.
+    :type window: tkinter.TK
+    :param canvas: The GUI in which the test is drawn onto.
+    :type canvas: tkinter.Canvas
+    :param start: The coordinates of the start position of the challenge.
+    :type start: np.array
+    :return: success (boolean)
+    """
     # Place mouse pointer over start_block
     pyautogui.moveTo(start[0] + LINE_THICKNESS // 2, start[1] + 33 + LINE_THICKNESS // 2)
 
@@ -186,6 +196,16 @@ def run_test(canvas, start):
 
 
 def get_pixel_color(canvas, x, y):
+    """
+    Gets the pixel color of a certain pixel in a canvas.
+    :param canvas: The canvas in question.
+    :type canvas: tkinter.Canvas
+    :param x: The x coordinate of the pixel to check.
+    :type x: int
+    :param y: The y coordinate of the pixel to check.
+    :type y: int
+    :return: string
+    """
     ids = canvas.find_overlapping(x, y, x, y)
     colors = []
 
