@@ -181,7 +181,7 @@ def create_test(canvas):
         # If starting side is top
         start = np.array([random.randint(BORDER_MARGIN, size[0]), BORDER_MARGIN])
         canvas.create_rectangle(start[0], start[1], start[0] + LINE_THICKNESS * 2, start[1] + LINE_THICKNESS * 2,
-                                              fill="green", outline="green")
+                                fill="green", outline="green")
 
         end = np.array([random.randint(BORDER_MARGIN, size[0]), size[1]])
         end_block = canvas.create_rectangle(end[0], end[1], end[0] + LINE_THICKNESS * 2, end[1] - LINE_THICKNESS * 2,
@@ -259,16 +259,16 @@ def draw_line(start, end, size, canvas, end_block, previous_direction,
     # Draw line in the determined direction
     if direction[0] == 1:
         east_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
-                                                        fill="black", outline="black"))
+                                                  fill="black", outline="black"))
     elif direction[0] == -1:
         west_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
-                                                        fill="black", outline="black"))
+                                                  fill="black", outline="black"))
     elif direction[1] == 1:
         south_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
-                                                      fill="black", outline="black"))
+                                                   fill="black", outline="black"))
     elif direction[1] == -1:
         north_lines.append(canvas.create_rectangle(start[0], start[1], line_end[0], line_end[1],
-                                                      fill="black", outline="black"))
+                                                   fill="black", outline="black"))
 
     # Check if the new line overlaps the goal
     if end_block in canvas.find_overlapping(start[0], start[1], line_end[0], line_end[1]):
@@ -370,7 +370,6 @@ def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_l
         x0, y0, x1, y1 = canvas.coords(line)
         y1 += increase_factor
         x1 += increase_factor
-
 
         canvas.delete(line)
         new_south_lines.append(canvas.create_rectangle(x0, y0, x1, y1, fill="black", outline="black"))
@@ -762,7 +761,7 @@ def is_clean_input(expected_type, value):
         if value != "":
             try:
                 # If possible to convert to int
-                test = int(value)
+                int(value)
                 is_clean = True
 
                 # If not possible to convert to int
