@@ -215,6 +215,30 @@ def create_test(canvas):
 
 def draw_line(start, end, size, canvas, end_block, previous_direction,
               east_lines, west_lines, south_lines, north_lines):
+    """
+    Draws a line in such a way as to make a connection between start and end.
+    :param start: Where the line will have to start.
+    :type start: np.array
+    :param end: Where the new line will try to get closer to.
+    :type end: np.array
+    :param size: The width and height of the game area.
+    :type size: np.array
+    :param canvas: The GUI in which the challenge happens.
+    :type canvas: tkinter.TK
+    :param end_block: The area in which any pixel marks the goal, and the end of any new line.
+    :type end_block: tkinter.Canvas.create_rectangle
+    :param previous_direction: The direction in which the previous line was headed.
+    :type previous_direction: np.array
+    :param east_lines: An array containing a reference to all the lines going east.
+    :type east_lines: list
+    :param west_lines: An array containing a reference to all the lines going west.
+    :type west_lines: list
+    :param south_lines: An array containing a reference to all the lines going south.
+    :type south_lines: list
+    :param north_lines: An array containing a reference to all the lines going north.
+    :type north_lines: list
+    :return: line_end (np.array), direction (np.array), covers_goal (boolean)
+    """
     print(f"\nDraw line from {start} to {end}.")
 
     # Get direction
@@ -296,6 +320,22 @@ def determine_direction(source, destination, previous_direction):
 
 
 def increase_line_thickness(canvas, east_lines, west_lines, south_lines, north_lines, increase_factor):
+    """
+    Increases the thickness of all drawn lines.
+    :param canvas: The GUI in which the challenge happens.
+    :type canvas: tkinter.TK
+    :param east_lines: An array containing a reference to all the lines going east.
+    :type east_lines: list
+    :param west_lines: An array containing a reference to all the lines going west.
+    :type west_lines: list
+    :param south_lines: An array containing a reference to all the lines going south.
+    :type south_lines: list
+    :param north_lines: An array containing a reference to all the lines going north.
+    :type north_lines: list
+    :param increase_factor: How many pixels to increase the line thickness by.
+    :type increase_factor: int
+    :return: new_east_lines (list), new_west_lines (list), new_south_lines (list), new_north_lines (list)
+    """
     new_east_lines = []
     for line in east_lines:
         x0, y0, x1, y1 = canvas.coords(line)
@@ -432,7 +472,7 @@ def get_alarm_state(server_address, server_port):
     :type server_address: str
     :param server_port: The port number of the server.
     :type server_port: str
-    :return: server_state (int)
+    :return: alarm_state (int)
     """
     # Create an INET streaming socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -479,7 +519,7 @@ def set_alarm_state(server_address, server_port, new_alarm_state):
 
 def server_connection(server_address, server_port):
     """
-    Creates a server connection and returns the socket
+    Creates a server connection and returns the socket.
     :param server_address: The IP address of the server.
     :type server_address: str
     :param server_port: The port number of the server.
@@ -657,7 +697,6 @@ def get_input(prompt, expected_type, speed):
     :param speed: How much time the program shall wait before asking the user for a new value if the previous one
     was invalid.
     :type speed: int
-    :type: bool
     :return: user_input (any)
     """
     user_input = None
@@ -710,7 +749,7 @@ def is_clean_input(expected_type, value):
 
 def change_wakeup_time(server_address, server_port, hour_or_minute, value):
     """
-    Changes the given type (hours or minute) to whatever value.
+    Changes the given type (hours or minute) to a given value.
     :param server_address: The IP address of the server.
     :type server_address: str
     :param server_port: The port number of the server.
