@@ -165,7 +165,6 @@ def create_test(canvas):
     start_side = random.randint(1, 2)
 
     size = np.array([canvas.winfo_width() - 3 - BORDER_MARGIN, canvas.winfo_height() - 3 - BORDER_MARGIN])
-    print(f"Size : {size}.")
 
     # Create start and end
     if start_side == 1:
@@ -187,8 +186,6 @@ def create_test(canvas):
         end = np.array([random.randint(BORDER_MARGIN, size[0]), size[1]])
         end_block = canvas.create_rectangle(end[0], end[1], end[0] + LINE_THICKNESS * 2, end[1] - LINE_THICKNESS * 2,
                                             fill="red", outline="red")
-
-    print(f"Start: {start}, end: {end}.")
 
     east_lines = []
     west_lines = []
@@ -239,11 +236,8 @@ def draw_line(start, end, size, canvas, end_block, previous_direction,
     :type north_lines: list
     :return: line_end (np.array), direction (np.array), covers_goal (boolean)
     """
-    print(f"\nDraw line from {start} to {end}.")
-
     # Get direction
     direction = determine_direction(start, end, previous_direction)
-    print(f"Direction: {direction}.")
 
     # Get line length
     max_direction_length = np.multiply(size, direction)
@@ -257,7 +251,6 @@ def draw_line(start, end, size, canvas, end_block, previous_direction,
         line_end[0] = size[0]
     if line_end[1] > size[1] or line_end[1] < BORDER_MARGIN:
         line_end[1] = size[1]
-    print(f"Line end: {line_end}.")
 
     # Draw line
     if direction[0] == 1:
@@ -309,7 +302,6 @@ def determine_direction(source, destination, previous_direction):
 
     previous_opposite_direction = previous_direction
     previous_opposite_direction = previous_opposite_direction[previous_opposite_direction != 0] * -1
-    print(f"Previous opposite direction: {previous_opposite_direction}")
 
     if np.array_equal(direction, previous_direction) or np.array_equal(direction, previous_opposite_direction):
         x = direction[0]
